@@ -1,7 +1,8 @@
 streamlit
 openai
-numpy
-scikit-learn
-pandas
+python-dotenv
 pypdf
+scikit-learn
+numpy
+pandas
 python-docx
