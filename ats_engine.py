@@ -1,10 +1,15 @@
 import os
 import io
-  
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from pypdf import PdfReader
-from dotenv import load_dotenv
+
+# Optional dotenv import
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Try to import Streamlit if available
 try:
@@ -12,61 +17,40 @@ try:
 except ImportError:
     st = None
 
-# Load .env for local development
-load_dotenv()
 
 # -------------------------
-# OpenAI client setup
+# OPENAI CLIENT SETUP
 # -------------------------
 def get_openai_api_key() -> str:
-    """
-    Get the OpenAI API key from:
-    1. Streamlit secrets (Cloud / local Streamlit)
-    2. Environment variables / .env (local, CI, etc.)
-    """
-
-    # 1. Try Streamlit secrets if Streamlit is available
+    """Load API key from Streamlit secrets or environment variables."""
     if st is not None:
         try:
-            key = st.secrets["OPENAI_API_KEY"]
-            if key:
-                return key
+            return st.secrets["OPENAI_API_KEY"]
         except Exception:
-            # st.secrets may not be set or key missing – fall back to env
             pass
 
-    # 2. Try environment variables (.env / system)
     key = os.getenv("OPENAI_API_KEY")
     if key:
         return key
 
-    # 3. Nothing configured: show friendly error in Streamlit or raise
-    msg = (
-        "OpenAI API Key not found.\n"
-        "Please set OPENAI_API_KEY in Streamlit secrets (on Cloud) "
-        "or in a local .env / environment variable."
-    )
-
+    msg = "OPENAI_API_KEY missing. Set it in Streamlit secrets or .env."
     if st is not None:
         st.error(msg)
         st.stop()
-
     raise RuntimeError(msg)
 
 
 OPENAI_API_KEY = get_openai_api_key()
 
-# ===== OpenAI client (new SDK style) =====
 from openai import OpenAI
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 # ======================================================
-# 1. DOCUMENT PARSING FUNCTION
+# 1. PDF TEXT EXTRACTION
 # ======================================================
 def extract_text_from_pdf(uploaded_file):
     """Reads a Streamlit UploadedFile object and extracts raw text."""
-    # Make sure we're at the beginning of the file
     uploaded_file.seek(0)
     reader = PdfReader(io.BytesIO(uploaded_file.read()))
     text = ""
@@ -76,18 +60,14 @@ def extract_text_from_pdf(uploaded_file):
 
 
 # ======================================================
-# 2. AI CLEANING & STRUCTURING FUNCTION
+# 2. CLEANING & STRUCTURING
 # ======================================================
 def clean_and_structure_resume(raw_resume_text):
-    """Uses LLM to clean noise and apply section tags to text."""
+    """Uses LLM to clean noise and apply section tags."""
     
     system_prompt = """
-    You are an expert Document Processor. Your task is to clean up raw, noisy text extracted from a resume.
-
-    INSTRUCTIONS:
-    1. Remove all noise: page numbers, headers, footers, repetitive lines, and obvious contact information (phone numbers, email addresses, URLs).
-    2. Structure the remaining core content using the following tags only: [SUMMARY], [SKILLS], [EXPERIENCE], [EDUCATION].
-    3. Return only the cleaned and tagged text. DO NOT add any extra commentary or introductory phrases.
+    You are an expert Document Processor. Clean noisy resume text and return structured sections:
+    [SUMMARY], [SKILLS], [EXPERIENCE], [EDUCATION]
     """
 
     try:
@@ -95,9 +75,9 @@ def clean_and_structure_resume(raw_resume_text):
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": raw_resume_text}
+                {"role": "user", "content": raw_resume_text},
             ],
-            temperature=0.0  # deterministic cleaning
+            temperature=0.0,
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -105,71 +85,51 @@ def clean_and_structure_resume(raw_resume_text):
 
 
 # ======================================================
-# 3. RANKING ENGINE FUNCTIONS
+# 3. EMBEDDINGS + FIT SCORE + RANKING
 # ======================================================
 def get_embedding(text):
-    """Converts text into a numeric vector for ranking."""
     text = text.replace("\n", " ")
-    embedding = client.embeddings.create(
-        input=[text],
-        model="text-embedding-3-small"
+    emb = client.embeddings.create(
+        input=[text], model="text-embedding-3-small"
     ).data[0].embedding
-    return embedding
+    return emb
+
+
+def compute_fit_score(job_description: str, resume_text: str) -> float:
+    jd_vec = get_embedding(job_description)
+    res_vec = get_embedding(resume_text)
+    score = cosine_similarity([jd_vec], [res_vec])[0][0]
+    return float(score)
 
 
 def rank_candidates(job_description, candidates_data):
-    """
-    Ranks candidates based on semantic similarity to the JD.
-    candidates_data: list[{"name": str, "resume": str}]
-    """
-    jd_vector = get_embedding(job_description)
-    scored_candidates = []
-    
-    for candidate in candidates_data:
-        resume_vector = get_embedding(candidate["resume"])
-        score = cosine_similarity([jd_vector], [resume_vector])[0][0]
-        
-        scored_candidates.append({
-            "name": candidate["name"],
-            "score": score,
-            "resume": candidate["resume"]
-        })
-    
-    scored_candidates.sort(key=lambda x: x["score"], reverse=True)
-    return scored_candidates
+    jd_vec = get_embedding(job_description)
+    results = []
+
+    for c in candidates_data:
+        res_vec = get_embedding(c["resume"])
+        score = cosine_similarity([jd_vec], [res_vec])[0][0]
+        results.append({"name": c["name"], "score": score, "resume": c["resume"]})
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results
 
 
 # ======================================================
-# 4. COMPLIANT FEEDBACK ENGINE
+# 4. FEEDBACK ENGINE
 # ======================================================
 def generate_compliant_feedback(job_description, candidate_resume):
-    """Generates legally compliant, constructive, and tangible rejection feedback."""
-    
+    """Generate legally compliant rejection feedback."""
     system_prompt = """
-    You are an Expert Resume Consultant and a Compliance Officer. Your primary goal is to provide **highly specific, tangible, and constructive feedback** based *only* on the content of the resume and the requirements of the job description (JD).
-
-    INSTRUCTIONS FOR TANGIBLE FEEDBACK:
-    1.  **Analyze the Weak Link:** Identify the single biggest gap where the candidate mentioned a required hard skill but failed to demonstrate sufficient depth, context, or quantifiable results required by the JD.
-    2.  **Focus on Specificity:** Instead of saying "lacks Python," say, "lacks demonstrated experience using Python for **data pipeline automation** as the JD requires."
-    3.  **Provide Actionable Advice:** Offer one concrete, actionable suggestion for how they can re-write or strengthen the *existing* experience on their resume to better match the JD's focus (e.g., "Add metrics showing efficiency gains").
-
-    THE "RED ZONE" (STRICTLY FORBIDDEN—Legal Compliance):
-    - Do NOT mention: Personality, tone, enthusiasm, "culture fit," age, gender, or soft skills.
-    
-    THE "GREEN ZONE" (ONLY USE THESE):
-    - Hard Skills, Objective Metrics, Demonstrated Specificity, and Mismatched Depth.
-
-    Write the polite and legally safe rejection email using this structured, tangible advice.
+    You are a Compliance Resume Consultant. Provide lawful, hard-skill-focused feedback only.
     """
 
     user_prompt = f"""
     JOB DESCRIPTION:
     {job_description}
 
-    CLEANED CANDIDATE RESUME:
+    RESUME:
     {candidate_resume}
-
-    Write the rejection email.
     """
 
     try:
@@ -177,24 +137,44 @@ def generate_compliant_feedback(job_description, candidate_resume):
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
+                {"role": "user", "content": user_prompt},
+            ],
         )
         return response.choices[0].message.content
     except Exception as e:
         return f"Error: {e}"
 
 
+# ======================================================
+# 5. RESUME REWRITE ENGINE
+# ======================================================
+def rewrite_resume(job_description: str, resume_text: str) -> str:
+    """Rewrite resume for better alignment while staying truthful."""
+    system_prompt = """
+    You are an expert ATS Resume Writer. Maintain truth, improve clarity, 
+    rephrase bullets, strengthen relevance, but do not invent experience.
+    Output in Markdown.
+    """
 
-# ... (Existing imports and functions) ...
+    prompt = f"""
+    JOB DESCRIPTION:
+    {job_description}
 
-def extract_text_from_docx(uploaded_file):
-    """Reads a Streamlit UploadedFile object and extracts text from DOCX."""
-    
-    # docx library needs a file path or file-like object; we use the file stream
-    document = docx.Document(uploaded_file)
-    text = ""
-    for paragraph in document.paragraphs:
-        text += paragraph.text + '\n'
-        
-    return text.strip()
+    ORIGINAL RESUME:
+    {resume_text}
+
+    Rewrite the resume and then list what changed and why.
+    """
+
+    try:
+        res = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.4,
+        )
+        return res.choices[0].message.content
+    except Exception as e:
+        return f"Error during rewrite: {e}"
