@@ -14,7 +14,7 @@ from ats_engine import (
 
 # --- Utility Function for Applicant List Feedback ---
 def generate_applicant_list_feedback(job_description, cleaned_resume):
-    """Generates structured, list-based feedback for the applicant."""
+    """Generates structured, email feedback for the applicant."""
     
     system_prompt = system_prompt = """
 You are an Expert Resume Consultant and a Compliance Officer. 
