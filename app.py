@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-
+from docx import Document
 from ats_engine import (
     rank_candidates,
     generate_compliant_feedback,
