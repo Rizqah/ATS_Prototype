@@ -75,22 +75,64 @@ if role == "Recruiter":
 
     # --- 3. FEEDBACK ENGINE TRIGGER ---
     if "ranked_data" in st.session_state:
-        st.header("3. Generate Compliant Feedback")
-        candidate_to_reject = st.session_state["ranked_data"][-1]
-        st.info(
-            f"Targeting **{candidate_to_reject['name']}** (Lowest Score) for Rejection Feedback."
+    st.header("3. Generate Legally Compliant, Skill-Based Feedback")
+
+    candidate_to_reject = st.session_state["ranked_data"][-1]
+
+    st.info(
+        f"Preparing feedback for **{candidate_to_reject['name']}** "
+        f"(Lowest ATS Match Score)."
+    )
+
+    with st.expander("ℹ️ About This Feedback Engine"):
+        st.markdown("""
+        You are an Expert Resume Consultant and a Compliance Officer.  
+        Your primary goal is to provide **highly specific, tangible, and constructive feedback** based *only* on:
+
+        - The content of the candidate’s resume  
+        - The requirements of the job description (JD)
+
+        ### **Instructions for Tangible & Legally-Safe Feedback**
+        1. **Analyze the Weak Link:** Identify the single biggest gap where the candidate referenced a required *hard skill* but did **not** demonstrate the required depth, context, or measurable outcomes.
+        2. **Focus on Specificity:**  
+           Instead of: *"lacks Python"*  
+           Use: *"lacks demonstrated experience using Python for data pipeline automation as the JD requires."*
+        3. **Provide Actionable Advice:**  
+           Give **one clear improvement suggestion** they can apply to strengthen that exact experience on their resume  
+           (e.g., *"Add metrics showing efficiency gains from financial modeling improvements."*)
+
+        ### 🚫 **THE RED ZONE — Strictly Forbidden**
+        - Personality, tone, attitude  
+        - Age, gender, culture fit  
+        - Soft skills  
+        - Anything subjective, emotional, or discriminatory  
+
+        ### ✅ **THE GREEN ZONE — Only These Are Allowed**
+        - Hard skills  
+        - Tools and technical expertise  
+        - Experience depth & context  
+        - Quantifiable results  
+        - Objective alignment with JD requirements  
+
+        The system will now generate a **polite and legally safe** rejection email based on the above rules.
+        """)
+
+    if st.button(f"✍️ Generate Feedback Email for {candidate_to_reject['name']}"):
+        st.warning("Generating compliant, skill-based feedback...")
+
+        feedback_draft = generate_compliant_feedback(
+            job_description,
+            candidate_to_reject["resume"],
         )
-        if st.button(f"✍️ Draft Email for {candidate_to_reject['name']}"):
-            st.warning("Generating Legally Compliant Draft...")
-            feedback_draft = generate_compliant_feedback(
-                job_description, candidate_to_reject["resume"]
-            )
-            st.subheader("Final Draft (Human-in-the-Loop Review)")
-            st.code(feedback_draft, language="text")
-            if st.checkbox(
-                "Recruiter Review: I confirm this feedback is safe and accurate."
-            ):
-                st.success("✅ Email ready to send! Liability risk minimized.")
+
+        st.subheader("📨 Final Draft — Human Review Required")
+        st.code(feedback_draft, language="text")
+
+        if st.checkbox(
+            "I confirm this feedback is accurate, objective, and legally safe."
+        ):
+            st.success("✅ Email approved and ready to send. Legal risk minimized.")
+
 
 
 # =========================================
