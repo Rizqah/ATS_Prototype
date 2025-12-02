@@ -75,7 +75,7 @@ if role == "Recruiter":
 
     # --- 3. FEEDBACK ENGINE TRIGGER ---
     if "ranked_data" in st.session_state:
-    st.header("3. Generate Legally Compliant, Skill-Based Feedback")
+     st.header("3. Generate Legally Compliant, Skill-Based Feedback")
 
     candidate_to_reject = st.session_state["ranked_data"][-1]
 
