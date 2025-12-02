@@ -56,9 +56,10 @@ with tab1:
 
     with col2:
         st.subheader("Candidate Resumes")
+        # --- CHANGE 1: Added 'doc' to accepted types ---
         uploaded_files = st.file_uploader(
-            "Upload Resumes (PDF and DOCX supported):", 
-            type=['pdf', 'docx'], 
+            "Upload Resumes (PDF, DOCX, and DOC supported):", 
+            type=['pdf', 'docx', 'doc'], 
             accept_multiple_files=True
         )
 
@@ -84,6 +85,10 @@ with tab1:
                 elif file_extension == 'docx':
                     file.seek(0)
                     raw_resume_text = extract_text_from_docx(file)
+                # --- CHANGE 2: Handling for older .doc files ---
+                elif file_extension == 'doc':
+                    st.error(f"⚠️ **Skipping {file.name}:** The legacy '.doc' format is unsupported on this cloud environment. Please convert this file to a modern '.docx' or '.pdf' and re-upload.")
+                    continue
                 else:
                     st.warning(f"Skipping unsupported file type: {file.name}")
                     continue 
