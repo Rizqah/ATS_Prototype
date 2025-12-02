@@ -30,7 +30,10 @@ if role == "Recruiter":
     job_description = st.text_area(
         "Paste the Full Job Description Here:",
         height=200,
-        value="We need a Chief Financial Officer (CFO). Must have CPA certification. Experience managing large corporate budgets. Strategic financial planning.",
+        value=(
+            "We need a Chief Financial Officer (CFO). Must have CPA certification. "
+            "Experience managing large corporate budgets. Strategic financial planning."
+        ),
     )
 
     uploaded_files = st.file_uploader(
@@ -74,117 +77,74 @@ if role == "Recruiter":
             st.session_state["ranked_data"] = ranking_results
 
     # --- 3. FEEDBACK ENGINE TRIGGER ---
-    # --- 3. FEEDBACK ENGINE TRIGGER ---
-if "ranked_data" in st.session_state:
-    st.header("3. Generate Legally Compliant, Skill-Based Feedback")
+    if "ranked_data" in st.session_state:
+        st.header("3. Generate Legally Compliant, Skill-Based Feedback")
 
-    candidate_to_reject = st.session_state["ranked_data"][-1]
+        candidate_to_reject = st.session_state["ranked_data"][-1]
 
-    st.info(
-        f"Preparing feedback for **{candidate_to_reject['name']}** "
-        f"(Lowest ATS Match Score)."
-    )
-
-    with st.expander("ℹ️ About This Feedback Engine"):
-        st.markdown("""
-        You are an Expert Resume Consultant and a Compliance Officer.  
-        Your goal is to provide **highly specific, tangible, and constructive feedback** based *only* on:
-
-        - The content of the candidate’s resume  
-        - The requirements of the job description (JD)
-
-        ### **Instructions for Tangible Feedback**
-        1. **Analyze the Weak Link:**  
-           Identify the single biggest gap where the candidate referenced a required hard skill  
-           but did **not** demonstrate the depth, context, or measurable results needed.
-        2. **Focus on Specificity:**  
-           Avoid vague statements like *"lacks Python"*.  
-           Use targeted feedback like:  
-           *"lacks demonstrated experience using Python for data pipeline automation as required by the JD."*
-        3. **Provide Actionable Advice:**  
-           Offer one concrete improvement the candidate can make to their **existing** content.  
-           Example: *"Add measurable outcomes showing efficiency gains from financial modelling work."*
-
-        ### 🚫 **Red Zone (Do NOT include)**
-        - Personality traits  
-        - Soft skills  
-        - Culture fit  
-        - Age, gender, protected attributes  
-        - Anything subjective or emotional  
-
-        ### ✅ **Green Zone (Allowed)**
-        - Hard skills  
-        - Tools  
-        - Scope & depth of experience  
-        - Quantifiable achievements  
-        - Objective JD alignment  
-
-        The generated email will be **polite, factual, and legally safe**.
-        """)
-
-    if st.button(f"✍️ Generate Feedback Email for {candidate_to_reject['name']}"):
-        st.warning("Generating compliant, skill-based feedback...")
-
-        feedback_draft = generate_compliant_feedback(
-            job_description,
-            candidate_to_reject["resume"],
+        st.info(
+            f"Preparing feedback for **{candidate_to_reject['name']}** "
+            f"(Lowest ATS Match Score)."
         )
 
-        st.subheader("📨 Final Draft — Human Review Required")
-        st.code(feedback_draft, language="text")
+        with st.expander("ℹ️ About This Feedback Engine"):
+            st.markdown("""
+            You are an Expert Resume Consultant and a Compliance Officer.  
+            Your goal is to provide **highly specific, tangible, and constructive feedback** based *only* on:
 
-        if st.checkbox(
-            "I confirm this feedback is accurate, objective, and legally safe."
-        ):
-            st.success("✅ Email approved and ready to send. Legal risk minimized.")
+            - The content of the candidate’s resume  
+            - The requirements of the job description (JD)
 
+            ### **Instructions for Tangible Feedback**
+            1. **Analyze the Weak Link:**  
+               Identify the single biggest gap where the candidate referenced a required hard skill  
+               but did **not** demonstrate the depth, context, or measurable results needed.
+            2. **Focus on Specificity:**  
+               Avoid vague statements like *"lacks Python"*.  
+               Use targeted feedback like:  
+               *"lacks demonstrated experience using Python for data pipeline automation as required by the JD."*
+            3. **Provide Actionable Advice:**  
+               Offer one concrete improvement the candidate can make to their **existing** content.  
+               Example: *"Add measurable outcomes showing efficiency gains from financial modelling work."*
 
-    # Function 4 (The Compliance & Feedback Engine)
+            ### 🚫 **Red Zone (Do NOT include)**
+            - Personality traits  
+            - Soft skills  
+            - Culture fit  
+            - Age, gender, protected attributes  
+            - Anything subjective or emotional  
 
-    """Generates legally compliant, constructive, and tangible rejection feedback."""
-    
-    # === NEW SYSTEM PROMPT: THE TANGIBLE FEEDBACK CONSULTANT ===
-    system_prompt = """
-    You are an Expert Resume Consultant and a Compliance Officer. Your primary goal is to provide **highly specific, tangible, and constructive feedback** based *only* on the content of the resume and the requirements of the job description (JD).
+            ### ✅ **Green Zone (Allowed)**
+            - Hard skills  
+            - Tools  
+            - Scope & depth of experience  
+            - Quantifiable achievements  
+            - Objective JD alignment  
 
-    INSTRUCTIONS FOR TANGIBLE FEEDBACK:
-    1.  **Analyze the Weak Link:** Identify the single biggest gap where the candidate mentioned a required hard skill but failed to demonstrate sufficient depth, context, or quantifiable results required by the JD.
-    2.  **Focus on Specificity:** Instead of saying "lacks Python," say, "lacks demonstrated experience using Python for **data pipeline automation** as the JD requires."
-    3.  **Provide Actionable Advice:** Offer one concrete, actionable suggestion for how they can re-write or strengthen the *existing* experience on their resume to better match the JD's focus (e.g., "Add metrics showing efficiency gains").
+            The generated email will be **polite, factual, and legally safe**.
+            """)
 
-    THE "RED ZONE" (STRICTLY FORBIDDEN—Legal Compliance):
-    - Do NOT mention: Personality, tone, enthusiasm, "culture fit," age, gender, or soft skills.
-    
-    THE "GREEN ZONE" (ONLY USE THESE):
-    - Hard Skills, Objective Metrics, Demonstrated Specificity, and Mismatched Depth.
+        if st.button(f"✍️ Generate Feedback Email for {candidate_to_reject['name']}"):
+            st.warning("Generating compliant, skill-based feedback...")
 
-    Write the polite and legally safe rejection email using this structured, tangible advice.
-    """
+            feedback_draft = generate_compliant_feedback(
+                job_description,
+                candidate_to_reject["resume"],
+            )
 
-    
+            st.subheader("📨 Final Draft — Human Review Required")
+            st.code(feedback_draft, language="text")
 
-    if st.button(f"✍️ Generate Feedback Email for {candidate_to_reject['name']}"):
-        st.warning("Generating compliant, skill-based feedback...")
-
-        feedback_draft = generate_compliant_feedback(
-            job_description,
-            candidate_to_reject["resume"],
-        )
-
-        st.subheader("📨 Final Draft — Human Review Required")
-        st.code(feedback_draft, language="text")
-
-        if st.checkbox(
-            "I confirm this feedback is accurate, objective, and legally safe."
-        ):
-            st.success("✅ Email approved and ready to send. Legal risk minimized.")
-
+            if st.checkbox(
+                "I confirm this feedback is accurate, objective, and legally safe."
+            ):
+                st.success("✅ Email approved and ready to send. Legal risk minimized.")
 
 
 # =========================================
 # APPLICANT MODE
 # =========================================
-else:
+elif role == "Applicant":
     st.subheader("Applicant Dashboard – Check Fit & Improve Your Resume")
 
     st.markdown(
