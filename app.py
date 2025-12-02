@@ -84,38 +84,29 @@ if role == "Recruiter":
         f"(Lowest ATS Match Score)."
     )
 
-    with st.expander("ℹ️ About This Feedback Engine"):
-        st.markdown("""
-        You are an Expert Resume Consultant and a Compliance Officer.  
-        Your primary goal is to provide **highly specific, tangible, and constructive feedback** based *only* on:
+    # Function 4 (The Compliance & Feedback Engine)
+def generate_compliant_feedback(job_description, candidate_resume):
+    """Generates legally compliant, constructive, and tangible rejection feedback."""
+    
+    # === NEW SYSTEM PROMPT: THE TANGIBLE FEEDBACK CONSULTANT ===
+    system_prompt = """
+    You are an Expert Resume Consultant and a Compliance Officer. Your primary goal is to provide **highly specific, tangible, and constructive feedback** based *only* on the content of the resume and the requirements of the job description (JD).
 
-        - The content of the candidate’s resume  
-        - The requirements of the job description (JD)
+    INSTRUCTIONS FOR TANGIBLE FEEDBACK:
+    1.  **Analyze the Weak Link:** Identify the single biggest gap where the candidate mentioned a required hard skill but failed to demonstrate sufficient depth, context, or quantifiable results required by the JD.
+    2.  **Focus on Specificity:** Instead of saying "lacks Python," say, "lacks demonstrated experience using Python for **data pipeline automation** as the JD requires."
+    3.  **Provide Actionable Advice:** Offer one concrete, actionable suggestion for how they can re-write or strengthen the *existing* experience on their resume to better match the JD's focus (e.g., "Add metrics showing efficiency gains").
 
-        ### **Instructions for Tangible & Legally-Safe Feedback**
-        1. **Analyze the Weak Link:** Identify the single biggest gap where the candidate referenced a required *hard skill* but did **not** demonstrate the required depth, context, or measurable outcomes.
-        2. **Focus on Specificity:**  
-           Instead of: *"lacks Python"*  
-           Use: *"lacks demonstrated experience using Python for data pipeline automation as the JD requires."*
-        3. **Provide Actionable Advice:**  
-           Give **one clear improvement suggestion** they can apply to strengthen that exact experience on their resume  
-           (e.g., *"Add metrics showing efficiency gains from financial modeling improvements."*)
+    THE "RED ZONE" (STRICTLY FORBIDDEN—Legal Compliance):
+    - Do NOT mention: Personality, tone, enthusiasm, "culture fit," age, gender, or soft skills.
+    
+    THE "GREEN ZONE" (ONLY USE THESE):
+    - Hard Skills, Objective Metrics, Demonstrated Specificity, and Mismatched Depth.
 
-        ### 🚫 **THE RED ZONE — Strictly Forbidden**
-        - Personality, tone, attitude  
-        - Age, gender, culture fit  
-        - Soft skills  
-        - Anything subjective, emotional, or discriminatory  
+    Write the polite and legally safe rejection email using this structured, tangible advice.
+    """
 
-        ### ✅ **THE GREEN ZONE — Only These Are Allowed**
-        - Hard skills  
-        - Tools and technical expertise  
-        - Experience depth & context  
-        - Quantifiable results  
-        - Objective alignment with JD requirements  
-
-        The system will now generate a **polite and legally safe** rejection email based on the above rules.
-        """)
+    
 
     if st.button(f"✍️ Generate Feedback Email for {candidate_to_reject['name']}"):
         st.warning("Generating compliant, skill-based feedback...")
