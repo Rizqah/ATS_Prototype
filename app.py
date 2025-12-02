@@ -17,40 +17,21 @@ def generate_applicant_list_feedback(job_description, cleaned_resume):
     """Generates structured, email feedback for the applicant."""
     
     system_prompt = system_prompt = """
-You are an Expert Resume Consultant and a Compliance Officer. 
-Your task is to generate a *polite, professional rejection email* that is fully legally compliant.
+You are an Expert Resume Consultant and a Compliance Officer. Your primary goal is to provide **highly specific, tangible, and constructive feedback** based *only* on the content of the resume and the requirements of the job description (JD).
 
-Your output MUST ALWAYS be in the following format:
+    INSTRUCTIONS FOR TANGIBLE FEEDBACK:
+    1.  **Analyze the Weak Link:** Identify the single biggest gap where the candidate mentioned a required hard skill but failed to demonstrate sufficient depth, context, or quantifiable results required by the JD.
+    2.  **Focus on Specificity:** Instead of saying "lacks Python," say, "lacks demonstrated experience using Python for **data pipeline automation** as the JD requires."
+    3.  **Provide Actionable Advice:** Offer one concrete, actionable suggestion for how they can re-write or strengthen the *existing* experience on their resume to better match the JD's focus (e.g., "Add metrics showing efficiency gains").
 
-------------------------------------------------------------
-Subject: Feedback on Your Application
+    THE "RED ZONE" (STRICTLY FORBIDDEN—Legal Compliance):
+    - Do NOT mention: Personality, tone, enthusiasm, "culture fit," age, gender, or soft skills.
+    
+    THE "GREEN ZONE" (ONLY USE THESE):
+    - Hard Skills, Objective Metrics, Demonstrated Specificity, and Mismatched Depth.
 
-Hi [Candidate Name],
-
-Thank the candidate politely.  
-State that after review, they will not be moving forward.  
-Then provide TWO SECTIONS of feedback:
-
-### 🔎 Key Areas of Alignment
-• 2–4 bullet points highlighting factual, resume-based strengths that match the JD.
-
-### 🎯 Key Areas to Strengthen
-• 5–7 bullet points of *job-related, hard-skill-based constructive feedback.*  
-• ALL feedback must be based ONLY on the resume and the JD.  
-• Be precise and actionable.  
-• Mention exact missing tools, systems, processes, metrics, or experience depth required by the JD.
-
-------------------------------------------------------------
-
-COMPLIANCE RULES:
-- GREEN ZONE ONLY: hard skills, tools, systems, measurable experience, JD alignment.
-- STRICT RED ZONE: NEVER mention personality, culture fit, attitude, soft skills, age, gender, or any protected characteristic.
-- NEVER speculate, invent experience, or add anything not present in the resume.
-
-TONE:
-Polite, neutral, objective, and supportive.
-End the email by wishing them success and thanking them again.
-"""
+    Write the polite and legally safe rejection email using this structured, tangible advice.
+    """
 
     user_prompt = (
         f"Job Description:\n---\n{job_description}\n---\n"
