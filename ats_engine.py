@@ -1,6 +1,6 @@
 import os
 import io
-import docx
+from docx import Document
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from pypdf import PdfReader
@@ -58,6 +58,21 @@ def extract_text_from_pdf(uploaded_file):
     for page in reader.pages:
         text += page.extract_text() or ""
     return text.strip()
+
+# ======================================================
+# 2. DOCX TEXT EXTRACTION
+# ======================================================
+def extract_text_from_docx(uploaded_file):
+    """Reads a Streamlit UploadedFile object and extracts text from DOCX."""
+    # Ensure we read from the beginning
+    uploaded_file.seek(0)
+    doc = Document(uploaded_file)
+    text = []
+    for para in doc.paragraphs:
+        if para.text:
+            text.append(para.text)
+    return "\n".join(text).strip()
+
 
 
 # ======================================================
