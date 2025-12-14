@@ -6,3 +6,14 @@ __pycache__/
 
 # Local Streamlit config files
 .streamlit/
+
+#TrueFit/
+├── app.py                          ← Landing page (first artifact)
+├── ats_engine.py                   ← Your backend logic
+├── pages/
+│   ├──Applicant.py            ← Applicant tool (second artifact)
+│   └── Recruiter.py            ← Recruiter tool (third artifact)
+
+# Requirements and Gitignore
+├──.gitignore
+└── requirements.txt
