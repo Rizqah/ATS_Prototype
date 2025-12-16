@@ -253,3 +253,4 @@ with st.sidebar:
     - Low match? Check for keyword alignment
     - Questions? You're using TrueFit ✨
     """)
+    

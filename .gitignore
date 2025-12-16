@@ -11,8 +11,8 @@ __pycache__/
 ├── app.py                          ← Landing page (first artifact)
 ├── ats_engine.py                   ← Your backend logic
 ├── pages/
-│   ├──Applicant.py            ← Applicant tool (second artifact)
-│   └── Recruiter.py            ← Recruiter tool (third artifact)
+│   ├── 01_applicant.py            ← Applicant tool (second artifact)
+│   └── 02_recruiter.py            ← Recruiter tool (third artifact)
 
 # Requirements and Gitignore
 ├──.gitignore

@@ -157,7 +157,6 @@ with col1:
     """, unsafe_allow_html=True)
     
     if st.button("🚀 Get Started as Candidate", key="candidate_btn", use_container_width=True):
-        st.session_state.page = "applicant"
         st.switch_page("pages/01_applicant.py")
 
 with col2:
@@ -170,7 +169,6 @@ with col2:
     """, unsafe_allow_html=True)
     
     if st.button("🚀 Get Started as Recruiter", key="recruiter_btn", use_container_width=True):
-        st.session_state.page = "recruiter"
         st.switch_page("pages/02_recruiter.py")
 
 # Features section
