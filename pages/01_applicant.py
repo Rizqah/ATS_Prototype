@@ -3,8 +3,9 @@ import pandas as pd
 from ats_engine import (
     extract_text_from_pdf,
     clean_and_structure_resume,
+    validate_resume_document,
     get_embedding,
-    generate_compliant_feedback
+    generate_resume_improvement_suggestions
 )
 from sklearn.metrics.pairwise import cosine_similarity
 import io
@@ -71,6 +72,14 @@ if resume_file and job_description and st.button("🔍 Analyze Resume & Job Matc
                 st.error("❌ Could not extract text from resume. Make sure it's a text-based PDF (not scanned).")
                 st.stop()
             
+            # Step 1.5: Validate it's actually a resume
+            st.write("🔍 Validating resume document...")
+            is_valid_resume, error_msg = validate_resume_document(raw_resume)
+            
+            if not is_valid_resume:
+                st.error(error_msg)
+                st.stop()
+            
             # Step 2: Clean and structure
             st.write("🧹 Cleaning and structuring resume...")
             cleaned_resume = clean_and_structure_resume(raw_resume)
@@ -94,8 +103,8 @@ if resume_file and job_description and st.button("🔍 Analyze Resume & Job Matc
             st.session_state.match_score = float(score)
             
             # Step 4: Generate improvement suggestions
-            st.write("💡 Generating personalized suggestions...")
-            suggestions = generate_compliant_feedback(job_description, cleaned_resume)
+            st.write("💡 Generating personalized improvement suggestions...")
+            suggestions = generate_resume_improvement_suggestions(job_description, cleaned_resume)
             st.session_state.improvement_suggestions = suggestions
             
         except Exception as e:
@@ -253,4 +262,3 @@ with st.sidebar:
     - Low match? Check for keyword alignment
     - Questions? You're using TrueFit ✨
     """)
-    

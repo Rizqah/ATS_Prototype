@@ -45,7 +45,56 @@ def setup_openai_client():
 client = setup_openai_client()
 
 # ======================================================
-# 2. DOCUMENT PARSING FUNCTION
+# 2. RESUME VALIDATION FUNCTION
+# ======================================================
+def validate_resume_document(raw_text: str) -> tuple[bool, str]:
+    """
+    Validates if the uploaded document is actually a resume/CV.
+    
+    Args:
+        raw_text: Extracted text from PDF
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    system_prompt = """
+    You are a document classifier. Determine if the provided text is a resume/CV.
+    
+    INSTRUCTIONS:
+    1. Check for typical resume sections: EXPERIENCE, SKILLS, EDUCATION, SUMMARY, OBJECTIVE, CONTACT
+    2. Check for job titles, company names, dates, educational institutions
+    3. Resumes should have work history or educational background
+    
+    Respond with ONLY "YES" if it's a resume, or "NO" if it's not.
+    """
+    
+    try:
+        # Use first 1000 chars to validate quickly
+        sample_text = raw_text[:1000]
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": sample_text}
+            ],
+            temperature=0.0,
+            max_tokens=10
+        )
+        
+        result = response.choices[0].message.content.strip().upper()
+        
+        if "YES" in result:
+            return True, ""
+        else:
+            return False, "❌ This doesn't appear to be a resume/CV. Please upload a valid resume with work experience, education, and skills."
+            
+    except Exception as e:
+        # If validation fails, let it through but warn user
+        return True, ""
+
+# ======================================================
+# 3. DOCUMENT PARSING FUNCTION
 # ======================================================
 def extract_text_from_pdf(uploaded_file) -> str:
     """
@@ -83,7 +132,7 @@ def extract_text_from_pdf(uploaded_file) -> str:
         raise ValueError(f"Error extracting PDF text: {str(e)}")
 
 # ======================================================
-# 3. AI CLEANING & STRUCTURING FUNCTION
+# 4. AI CLEANING & STRUCTURING FUNCTION
 # ======================================================
 def clean_and_structure_resume(raw_resume_text: str) -> str:
     """
@@ -130,7 +179,7 @@ def clean_and_structure_resume(raw_resume_text: str) -> str:
         return f"Unexpected error during cleaning: {str(e)}"
 
 # ======================================================
-# 4. EMBEDDING & RANKING ENGINE FUNCTIONS
+# 5. EMBEDDING & RANKING ENGINE FUNCTIONS
 # ======================================================
 def get_embedding(text: str) -> Optional[List[float]]:
     """
@@ -227,7 +276,77 @@ def rank_candidates(
         return []
 
 # ======================================================
-# 5. FEEDBACK ENGINE FUNCTION
+# 6. GENERATE IMPROVEMENT SUGGESTIONS
+# ======================================================
+def generate_resume_improvement_suggestions(
+    job_description: str, 
+    candidate_resume: str
+) -> str:
+    """
+    Generates specific, actionable suggestions for improving a resume for a specific job.
+    FOR CANDIDATES - helps them improve their resume.
+    
+    Args:
+        job_description: The job posting
+        candidate_resume: The candidate's resume (cleaned/structured)
+        
+    Returns:
+        Resume improvement suggestions
+    """
+
+    if not job_description or not job_description.strip():
+        return "Error: Job description is empty"
+        
+    if not candidate_resume or not candidate_resume.strip():
+        return "Error: Candidate resume is empty"
+    
+    system_prompt = """
+    You are an Expert Resume Coach. Your goal is to help candidates IMPROVE their resumes to match a specific job.
+    
+    INSTRUCTIONS:
+    1. **Identify Gaps**: Compare the resume to the job description. What skills/experience does the job require that the resume doesn't clearly show?
+    2. **Be Specific**: Don't say "add more skills" - say "The job emphasizes Python for data automation. Your Python experience is mentioned but lacks detail. Add a specific project where you used Python to automate a process."
+    3. **Give Actionable Steps**: Provide 3-5 concrete, specific suggestions for how to rewrite or expand existing sections.
+    4. **Focus on Content, Not Format**: Suggest what to ADD, REMOVE, or REWRITE in the resume content itself.
+    5. **Highlight Strengths**: Also mention what's already strong in the resume for this specific role.
+    
+    Format your response as a numbered list of improvements.
+    """
+
+    user_prompt = f"""
+    JOB DESCRIPTION:
+    {job_description}
+
+    CANDIDATE'S RESUME:
+    {candidate_resume}
+
+    Provide 3-5 specific, actionable suggestions to improve this resume for this exact job.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=800
+        )
+        
+        feedback = response.choices[0].message.content
+        if not feedback:
+            return "Error: No suggestions generated"
+            
+        return feedback
+        
+    except openai.APIError as e:
+        return f"OpenAI API Error: {str(e)}"
+    except Exception as e:
+        return f"Error generating suggestions: {str(e)}"
+
+# ======================================================
+# 6. FEEDBACK ENGINE FUNCTIONS
 # ======================================================
 def generate_compliant_feedback(
     job_description: str, 
@@ -297,4 +416,3 @@ def generate_compliant_feedback(
         return f"OpenAI API Error: {str(e)}"
     except Exception as e:
         return f"Error generating feedback: {str(e)}"
-# ======================================================
