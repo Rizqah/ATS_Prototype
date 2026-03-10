@@ -150,6 +150,18 @@ def generate_ats_optimized_cv(
         alignment=TA_JUSTIFY,
         leading=10 * 1.5,
     )
+
+    achievements_label_style = ParagraphStyle(
+        'AchievementsLabel',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.black,
+        spaceBefore=4,
+        spaceAfter=2,
+        fontName='Helvetica-Bold',
+        alignment=TA_JUSTIFY,
+        leading=9 * 1.5,
+    )
     
     normal_style = ParagraphStyle(
         'CustomNormal',
@@ -219,6 +231,7 @@ def generate_ats_optimized_cv(
             # Achievements (numbered list – each item a new paragraph)
             exp_id = exp.get('id')
             if exp_id and exp_id in achievements_by_experience:
+                content.append(Paragraph("Achievements", achievements_label_style))
                 for idx, achievement in enumerate(achievements_by_experience[exp_id], 1):
                     text = f"{idx}. {achievement.get('achievement', '')}"
                     if achievement.get('metric'):
@@ -319,6 +332,7 @@ def format_cv_for_display(
             
             exp_id = exp.get('id')
             if exp_id and exp_id in achievements_by_experience:
+                text.append("Achievements")
                 for ach in achievements_by_experience[exp_id]:
                     ach_text = f"• {ach.get('achievement', '')}"
                     if ach.get('metric'):
@@ -453,6 +467,14 @@ def generate_cv_docx(
             # Achievements (numbered)
             exp_id = exp.get("id")
             if exp_id and exp_id in achievements_by_experience:
+                achievements_label = doc.add_paragraph()
+                achievements_label.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                achievements_label.paragraph_format.space_before = Pt(2)
+                achievements_label.paragraph_format.space_after = Pt(2)
+                label_run = achievements_label.add_run("Achievements")
+                label_run.bold = True
+                label_run.font.size = Pt(9)
+                label_run.font.name = "Calibri"
                 for ach_num, ach in enumerate(achievements_by_experience[exp_id], 1):
                     ach_text = f"{ach_num}. {ach.get('achievement', '')}"
                     if ach.get("metric"):
@@ -571,6 +593,7 @@ def generate_optimized_cv_content(
     """
         exp_id = exp.get('id')
         if exp_id and exp_id in optimized_achievements:
+            cv_text += "Achievements\n"
             for ach in optimized_achievements[exp_id]:
                 cv_text += f"• {ach.get('achievement', '')} ({ach.get('metric', '')})\n"
     cv_text += "\nSKILLS\n"

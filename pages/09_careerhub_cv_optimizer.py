@@ -303,6 +303,8 @@ def generate_docx_cv(cv_data):
             # Achievements
             exp_id = exp.get("id")
             if exp_id and exp_id in achievements_by_exp:
+                achievements_heading = doc.add_paragraph()
+                achievements_heading.add_run("Achievements").bold = True
                 for ach in achievements_by_exp[exp_id]:
                     ach_text = f"{ach.get('achievement')}"
                     if ach.get("metric"):
