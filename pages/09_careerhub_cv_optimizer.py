@@ -18,7 +18,8 @@ from careerhub_db import (
 from cv_generator import (
     generate_ats_optimized_cv,
     generate_optimized_cv_content,
-    format_cv_for_display
+    format_cv_for_display,
+    generate_cv_docx
 )
 from ats_engine import match_profile_to_jd
 from reportlab.lib.pagesizes import letter
@@ -106,7 +107,12 @@ if st.button("🚀 Generate Optimized CV", type="primary", use_container_width=T
             )
 
             # Generate DOCX
-            docx_bytes = generate_docx_cv(optimized_cv_data)
+            docx_bytes = generate_cv_docx(
+                profile=optimized_cv_data["profile"],
+                work_experiences=optimized_cv_data["work_experiences"],
+                achievements_by_experience=optimized_cv_data["achievements_by_exp"],
+                skills=optimized_cv_data["skills"],
+            )
 
             # Store in session
             st.session_state.optimized_pdf = pdf_bytes

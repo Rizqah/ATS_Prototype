@@ -6,6 +6,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas as pdf_canvas
 import io
+import re
 from typing import List, Dict
 from docx import Document
 from docx.shared import Pt, Inches
@@ -29,6 +30,50 @@ class NumberedCanvas(pdf_canvas.Canvas):
         self.drawCentredString(4.25 * inch, 0.45 * inch, f"Page {self._page_num}")
         self.restoreState()
         pdf_canvas.Canvas.showPage(self)
+
+
+def _normalize_whitespace(text: str) -> str:
+    """Collapse uneven spacing while preserving intended new lines."""
+    cleaned = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r" *\n *", "\n", cleaned)
+    return cleaned.strip()
+
+
+def _split_inline_numbered_items(text: str) -> List[str]:
+    """Split text such as '1)Did X 2)Did Y' into separate paragraphs."""
+    cleaned = _normalize_whitespace(text)
+    if not cleaned:
+        return []
+
+    marker_pattern = r"(?<!\w)(\d+[.)])\s*(?=[A-Za-z])"
+    if len(re.findall(marker_pattern, cleaned)) < 2:
+        return [cleaned]
+
+    starts = [match.start() for match in re.finditer(marker_pattern, cleaned)]
+    starts.append(len(cleaned))
+
+    parts = []
+    for index, start in enumerate(starts[:-1]):
+        part = cleaned[start:starts[index + 1]].strip(" ;")
+        if part:
+            parts.append(part)
+    return parts or [cleaned]
+
+
+def _prepare_text_blocks(text: str) -> List[str]:
+    """Return one or more clean paragraphs for rendering."""
+    cleaned = _normalize_whitespace(text)
+    if not cleaned:
+        return []
+
+    blocks = []
+    for paragraph in re.split(r"\n{2,}", cleaned):
+        lines = [line.strip() for line in paragraph.split("\n") if line.strip()]
+        merged = " ".join(lines).strip()
+        if merged:
+            blocks.extend(_split_inline_numbered_items(merged))
+    return blocks
 
 
 # ======================================================
@@ -168,7 +213,8 @@ def generate_ats_optimized_cv(
             
             # Description
             if exp.get('description'):
-                content.append(Paragraph(exp['description'], normal_style))
+                for description_block in _prepare_text_blocks(exp['description']):
+                    content.append(Paragraph(description_block, normal_style))
             
             # Achievements (numbered list – each item a new paragraph)
             exp_id = exp.get('id')
@@ -269,7 +315,7 @@ def format_cv_for_display(
                 text.append(date_range)
             
             if exp.get('description'):
-                text.append(exp['description'])
+                text.extend(_prepare_text_blocks(exp['description']))
             
             exp_id = exp.get('id')
             if exp_id and exp_id in achievements_by_experience:
@@ -395,13 +441,14 @@ def generate_cv_docx(
 
             # Description
             if exp.get("description"):
-                desc_p = doc.add_paragraph(exp["description"])
-                desc_p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                desc_p.paragraph_format.line_spacing = 1.5
-                desc_p.paragraph_format.space_after = Pt(4)
-                for run in desc_p.runs:
-                    run.font.size = Pt(9)
-                    run.font.name = "Calibri"
+                for description_block in _prepare_text_blocks(exp["description"]):
+                    desc_p = doc.add_paragraph(description_block)
+                    desc_p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    desc_p.paragraph_format.line_spacing = 1.5
+                    desc_p.paragraph_format.space_after = Pt(4)
+                    for run in desc_p.runs:
+                        run.font.size = Pt(9)
+                        run.font.name = "Calibri"
 
             # Achievements (numbered)
             exp_id = exp.get("id")
