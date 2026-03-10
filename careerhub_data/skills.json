@@ -1,0 +1,111 @@
+{
+  "azeez.risikat05@gmail.com": {
+    "skill_1768426252.64485": {
+      "id": "skill_1768426252.64485",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "People Management",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-14T21:30:52.644864"
+    },
+    "skill_1768426271.537287": {
+      "id": "skill_1768426271.537287",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Employee Relations",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-14T21:31:11.537301"
+    },
+    "skill_1768427985.505407": {
+      "id": "skill_1768427985.505407",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "HR analytic",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-14T21:59:45.505423"
+    },
+    "skill_1768428000.605461": {
+      "id": "skill_1768428000.605461",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Performance Management",
+      "proficiency": "Advanced",
+      "created_at": "2026-01-14T22:00:00.605478"
+    },
+    "skill_1768428053.987633": {
+      "id": "skill_1768428053.987633",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Employee Engagement & Culture Development",
+      "proficiency": "Advanced",
+      "created_at": "2026-01-14T22:00:53.987648"
+    },
+    "skill_1768428084.863877": {
+      "id": "skill_1768428084.863877",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Compensation & Benefits",
+      "proficiency": "Advanced",
+      "created_at": "2026-01-14T22:01:24.863893"
+    },
+    "skill_1768428103.748479": {
+      "id": "skill_1768428103.748479",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Strategic Development & Implementation",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-14T22:01:43.748490"
+    },
+    "skill_1768428127.601442": {
+      "id": "skill_1768428127.601442",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Microsoft PowerBI",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-14T22:02:07.601455"
+    },
+    "skill_1768428142.003479": {
+      "id": "skill_1768428142.003479",
+      "user_email": "azeez.risikat05@gmail.com",
+      "skill_name": "Employment Law",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-14T22:02:22.003491"
+    }
+  },
+  "luffluv4real@gmail.com": {
+    "skill_1769355714.628221": {
+      "id": "skill_1769355714.628221",
+      "user_email": "luffluv4real@gmail.com",
+      "skill_name": "Talent Management",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-25T15:41:54.628234"
+    },
+    "skill_1769355723.52175": {
+      "id": "skill_1769355723.52175",
+      "user_email": "luffluv4real@gmail.com",
+      "skill_name": "HR Analytics",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-25T15:42:03.521792"
+    },
+    "skill_1769355733.93905": {
+      "id": "skill_1769355733.93905",
+      "user_email": "luffluv4real@gmail.com",
+      "skill_name": "Process Improvement",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-25T15:42:13.939070"
+    },
+    "skill_1769355743.269471": {
+      "id": "skill_1769355743.269471",
+      "user_email": "luffluv4real@gmail.com",
+      "skill_name": "HRIS Implementation",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-25T15:42:23.269484"
+    },
+    "skill_1769355784.129554": {
+      "id": "skill_1769355784.129554",
+      "user_email": "luffluv4real@gmail.com",
+      "skill_name": "Case work Management",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-25T15:43:04.129580"
+    },
+    "skill_1769355797.836894": {
+      "id": "skill_1769355797.836894",
+      "user_email": "luffluv4real@gmail.com",
+      "skill_name": "Employee Relations",
+      "proficiency": "Intermediate",
+      "created_at": "2026-01-25T15:43:17.836910"
+    }
+  }
+}

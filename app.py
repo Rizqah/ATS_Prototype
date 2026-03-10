@@ -1,211 +1,332 @@
 import streamlit as st
+from styles import inject_global_css
 
 # ======================================================
 # PAGE CONFIG
 # ======================================================
 st.set_page_config(
     page_title="TrueFit - AI Resume Matching",
-    page_icon="✨",
+    page_icon="TF",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
+)
+
+# Inject global CSS stylesheet
+inject_global_css()
+
+# Initialize session state
+if "user_role" not in st.session_state:
+    st.session_state.user_role = None
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# ======================================================
+# CUSTOM CSS (LANDING PAGE SPECIFIC)
+# ======================================================
+st.markdown(
+    """
+    <style>
+    .main .block-container {
+        max-width: 1180px;
+        padding-top: 1.4rem;
+        padding-bottom: 2rem;
+    }
+
+    .lp-hero {
+        background:
+            linear-gradient(120deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%),
+            url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1800&q=80');
+        background-size: cover;
+        background-position: center;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 44px 38px;
+        margin-bottom: 24px;
+        box-shadow: 0 18px 36px rgba(2, 6, 23, 0.35);
+    }
+
+    .lp-badge {
+        display: inline-block;
+        background: rgba(96, 165, 250, 0.18);
+        color: #bfdbfe;
+        border: 1px solid rgba(96, 165, 250, 0.35);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        margin-bottom: 12px;
+    }
+
+    .lp-title {
+        color: #f8fafc;
+        font-size: clamp(2rem, 4vw, 3.1rem);
+        line-height: 1.08;
+        margin: 0;
+        font-weight: 900;
+    }
+
+    .lp-sub {
+        color: #cbd5e1;
+        margin-top: 14px;
+        font-size: 1.04rem;
+        max-width: 56ch;
+        line-height: 1.6;
+        font-weight: 500;
+    }
+
+    .lp-chip-row {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .lp-chip {
+        background: rgba(148, 163, 184, 0.18);
+        color: #e2e8f0;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 999px;
+        padding: 5px 11px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .lp-panel {
+        background: rgba(15, 23, 42, 0.58);
+        border: 1px solid rgba(100, 116, 139, 0.4);
+        border-radius: 14px;
+        padding: 16px;
+    }
+
+    .lp-panel-title {
+        color: #e2e8f0;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .lp-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .lp-kpi {
+        background: rgba(30, 41, 59, 0.75);
+        border: 1px solid rgba(96, 165, 250, 0.28);
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .lp-kpi-val {
+        color: #f8fafc;
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .lp-kpi-lbl {
+        color: #93c5fd;
+        font-size: 0.72rem;
+        margin: 2px 0 0 0;
+        font-weight: 600;
+    }
+
+    .lp-section-title {
+        color: #e2e8f0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 6px 0 14px 0;
+    }
+
+    .lp-card {
+        border: 1px solid #334155;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+        padding: 28px 24px;
+        min-height: 220px;
+        transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .lp-card:hover {
+        transform: translateY(-3px);
+        border-color: #60a5fa;
+        box-shadow: 0 14px 24px rgba(30, 64, 175, 0.18);
+    }
+
+    .lp-card h3 {
+        color: #f8fafc;
+        margin: 0 0 10px 0;
+        font-size: 1.55rem;
+        font-weight: 800;
+    }
+
+    .lp-card p {
+        color: #cbd5e1;
+        font-size: 1rem;
+        line-height: 1.58;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .lp-features {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .lp-feature {
+        border: 1px solid #334155;
+        border-radius: 12px;
+        background: #1e293b;
+        padding: 16px;
+    }
+
+    .lp-feature h4 {
+        color: #93c5fd;
+        font-size: 1rem;
+        margin: 0 0 6px 0;
+        font-weight: 700;
+    }
+
+    .lp-feature p {
+        color: #cbd5e1;
+        margin: 0;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        font-weight: 500;
+    }
+
+    .lp-footer {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.88rem;
+        margin-top: 18px;
+        font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+        .lp-kpi-grid,
+        .lp-features {
+            grid-template-columns: 1fr;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 # ======================================================
-# CUSTOM CSS
+# HERO
 # ======================================================
-st.markdown("""
-    <style>
-    /* Hide default Streamlit header */
-    .stAppHeader { display: none; }
-    
-    /* Landing page styling */
-    .landing-hero {
-        text-align: center;
-        padding: 60px 20px;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        border-radius: 10px;
-        margin-bottom: 40px;
-    }
-    
-    .landing-hero h1 {
-        font-size: 3.5em;
-        font-weight: 900;
-        background: linear-gradient(90deg, #60a5fa, #34d399);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 10px;
-    }
-    
-    .landing-hero p {
-        font-size: 1.3em;
-        color: #cbd5e1;
-        margin-bottom: 30px;
-    }
-    
-    .tagline {
-        font-size: 1.1em;
-        color: #94a3b8;
-        font-style: italic;
-        margin-top: 20px;
-    }
-    
-    .cta-container {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin-top: 40px;
-    }
-    
-    .cta-card {
-        flex: 1;
-        min-width: 300px;
-        padding: 40px;
-        border: 2px solid #334155;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        text-align: center;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .cta-card:hover {
-        border-color: #60a5fa;
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(96, 165, 250, 0.2);
-    }
-    
-    .cta-card h2 {
-        font-size: 2em;
-        margin-bottom: 15px;
-        color: #e2e8f0;
-    }
-    
-    .cta-card p {
-        color: #94a3b8;
-        font-size: 1.1em;
-        margin-bottom: 20px;
-    }
-    
-    .cta-icon {
-        font-size: 3em;
-        margin-bottom: 20px;
-    }
-    
-    .button-primary {
-        background: linear-gradient(90deg, #60a5fa, #34d399);
-        color: white;
-        padding: 12px 30px;
-        border: none;
-        border-radius: 8px;
-        font-size: 1em;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .button-primary:hover {
-        transform: scale(1.05);
-    }
-    
-    .features {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 30px;
-        margin-top: 60px;
-    }
-    
-    .feature-box {
-        padding: 30px;
-        background: #1e293b;
-        border-radius: 10px;
-        border-left: 4px solid #60a5fa;
-    }
-    
-    .feature-box h3 {
-        color: #60a5fa;
-        margin-bottom: 10px;
-    }
-    
-    .feature-box p {
-        color: #cbd5e1;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+hero_left, hero_right = st.columns([1.45, 1], gap="large")
+
+with hero_left:
+    st.markdown(
+        """
+        <div class="lp-hero">
+            <div class="lp-badge">PROFESSIONAL HIRING PLATFORM</div>
+            <h1 class="lp-title">TrueFit</h1>
+            <p class="lp-sub">
+                AI-powered resume matching for candidates and recruiters.
+                Improve application quality, rank talent faster, and make decisions with confidence.
+            </p>
+            <div class="lp-chip-row">
+                <span class="lp-chip">Semantic Matching</span>
+                <span class="lp-chip">Clear Insights</span>
+                <span class="lp-chip">Recruiter Workflow</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with hero_right:
+    st.markdown(
+        """
+        <div class="lp-panel">
+            <div class="lp-panel-title">Platform Snapshot</div>
+            <div class="lp-kpi-grid">
+                <div class="lp-kpi">
+                    <p class="lp-kpi-val">300+</p>
+                    <p class="lp-kpi-lbl">Analyses</p>
+                </div>
+                <div class="lp-kpi">
+                    <p class="lp-kpi-val">50+</p>
+                    <p class="lp-kpi-lbl">Recruiters</p>
+                </div>
+                <div class="lp-kpi">
+                    <p class="lp-kpi-val">1000+</p>
+                    <p class="lp-kpi-lbl">Matches</p>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ======================================================
-# LANDING PAGE CONTENT
+# CTA
 # ======================================================
-st.markdown("""
-    <div class="landing-hero">
-        <h1>✨ TrueFit</h1>
-        <p>AI-Powered Resume Matching Platform</p>
-        <p class="tagline">Helping candidates improve. Helping recruiters decide.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Use columns for CTA buttons
+st.markdown('<h2 class="lp-section-title">Choose Your Workflow</h2>', unsafe_allow_html=True)
 col1, col2 = st.columns(2, gap="medium")
 
 with col1:
-    st.markdown("""
-    <div class="cta-card">
-        <div class="cta-icon">📄</div>
-        <h2>For Candidates</h2>
-        <p>Optimize your resume against job descriptions. Get match scores and AI-powered suggestions to improve your chances.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("🚀 Get Started as Candidate", key="candidate_btn", use_container_width=True):
-        st.switch_page("pages/01_applicant.py")
+    st.markdown(
+        """
+        <div class="lp-card">
+            <h3>For Candidates</h3>
+            <p>
+                Benchmark your resume against job descriptions and get targeted suggestions
+                to improve match strength before you apply.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Get Started as Candidate", key="candidate_btn", use_container_width=True, type="primary"):
+        st.switch_page("pages/03_careerhub_auth.py")
 
 with col2:
-    st.markdown("""
-    <div class="cta-card">
-        <div class="cta-icon">👥</div>
-        <h2>For Recruiters</h2>
-        <p>Screen multiple resumes instantly. Get ranked candidates with match scores and AI-generated feedback.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("🚀 Get Started as Recruiter", key="recruiter_btn", use_container_width=True):
+    st.markdown(
+        """
+        <div class="lp-card">
+            <h3>For Recruiters</h3>
+            <p>
+                Process multiple resumes, rank candidates instantly, and generate structured
+                feedback to support hiring decisions.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Get Started as Recruiter", key="recruiter_btn", use_container_width=True, type="primary"):
         st.switch_page("pages/02_recruiter.py")
 
-# Features section
-st.markdown("---")
-st.markdown("## Key Features")
-
-st.markdown("""
-    <div class="features">
-        <div class="feature-box">
-            <h3>🧠 AI-Powered Analysis</h3>
-            <p>Uses advanced semantic matching to analyze resumes beyond keyword matching.</p>
+# ======================================================
+# FEATURES
+# ======================================================
+st.markdown('<h2 class="lp-section-title">Core Capabilities</h2>', unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class="lp-features">
+        <div class="lp-feature">
+            <h4>AI Analysis</h4>
+            <p>Evaluates resumes using semantic context, not only keywords.</p>
         </div>
-        <div class="feature-box">
-            <h3>📊 Match Scoring</h3>
-            <p>Get detailed match scores showing how well your resume aligns with job requirements.</p>
+        <div class="lp-feature">
+            <h4>Match Scoring</h4>
+            <p>Clear score breakdowns for quick understanding and action.</p>
         </div>
-        <div class="feature-box">
-            <h3>💡 Smart Suggestions</h3>
-            <p>Receive actionable, specific recommendations to improve your resume for each role.</p>
-        </div>
-        <div class="feature-box">
-            <h3>⚖️ Legally Compliant</h3>
-            <p>Built with compliance in mind. Feedback focuses on skills and experience only.</p>
-        </div>
-        <div class="feature-box">
-            <h3>🔒 Privacy First</h3>
-            <p>Your data is processed securely. We don't store or sell your information.</p>
-        </div>
-        <div class="feature-box">
-            <h3>⚡ Fast & Efficient</h3>
-            <p>Get results in seconds. Analyze multiple candidates or resumes quickly.</p>
+        <div class="lp-feature">
+            <h4>Actionable Guidance</h4>
+            <p>Practical suggestions tailored to each role and profile.</p>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
-# Footer
-st.markdown("---")
-col1, col2, col3 = st.columns(3)
-with col2:
-    st.caption("✨ TrueFit | Making hiring and job search smarter, faster, fairer")
+st.markdown('<div class="lp-footer">TrueFit | Making hiring and job search smarter</div>', unsafe_allow_html=True)

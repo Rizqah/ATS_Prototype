@@ -416,3 +416,175 @@ def generate_compliant_feedback(
         return f"OpenAI API Error: {str(e)}"
     except Exception as e:
         return f"Error generating feedback: {str(e)}"
+
+
+# ======================================================
+# 7. PROFILE-TO-JD MATCHING & CV OPTIMIZATION
+# ======================================================
+def match_profile_to_jd(profile, work_experiences, achievements_by_experience, skills, job_description):
+    """
+    Match entire applicant profile against job description.
+
+    Returns:
+        dict with match_score and analysis
+    """
+    try:
+        profile_text = f"""
+        {profile.get('full_name', '')}
+
+        PROFESSIONAL SUMMARY:
+        {profile.get('professional_summary', '')}
+
+        SKILLS:
+        {', '.join([s.get('skill_name', '') for s in skills])}
+
+        WORK EXPERIENCE:
+        """
+
+        for exp in work_experiences:
+            profile_text += f"""
+            {exp.get('position', '')} at {exp.get('company', '')}
+            {exp.get('description', '')}
+            """
+            exp_id = exp.get('id')
+            if exp_id and exp_id in achievements_by_experience:
+                for ach in achievements_by_experience[exp_id]:
+                    profile_text += f"- {ach.get('achievement', '')} {ach.get('metric', '')}\n"
+
+        profile_vector = get_embedding(profile_text)
+        jd_vector = get_embedding(job_description)
+
+        if not profile_vector or not jd_vector:
+            raise Exception("Could not generate embeddings")
+
+        score = cosine_similarity([jd_vector], [profile_vector])[0][0]
+        match_score = float(score)
+
+        system_prompt = """
+        You are an expert recruiter analyzing candidate profile against job requirements.
+
+        INSTRUCTIONS:
+        1. Identify top 3 matching areas between profile and JD
+        2. Identify top 3 gaps/missing skills
+        3. Provide brief recommendation (1-2 sentences)
+
+        Format as:
+        **Matching Strengths:**
+        - Strength 1
+        - Strength 2
+        - Strength 3
+
+        **Skills Gaps:**
+        - Gap 1
+        - Gap 2
+        - Gap 3
+
+        **Recommendation:**
+        [Brief 1-2 sentence recommendation]
+        """
+
+        user_prompt = f"""
+        CANDIDATE PROFILE:
+        {profile_text}
+
+        JOB DESCRIPTION:
+        {job_description}
+
+        Analyze this match.
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=500
+        )
+
+        analysis = response.choices[0].message.content
+        return {"match_score": match_score, "analysis": analysis}
+
+    except Exception as e:
+        st.error(f"Error matching profile to JD: {str(e)}")
+        return {"match_score": 0.0, "analysis": "Error generating analysis"}
+
+
+def optimize_cv_for_jd(profile_text, job_description, work_experiences_text):
+    """
+    Use AI to rewrite CV content optimized for JD.
+    Expands on relevant skills, reorders achievements, rewrites summary.
+
+    Returns:
+        str with optimized content (or error message)
+    """
+    try:
+        system_prompt = """
+        You are an expert CV optimizer and recruiter.
+
+        TASK: Rewrite the CV content to better match the job description.
+
+        INSTRUCTIONS:
+        1. **Rewrite Professional Summary**: Create a new summary that:
+           - Highlights skills/experience relevant to JD
+           - Uses keywords from the job description
+           - Shows alignment with role requirements
+
+        2. **Expand Work Experience**: For each job, enhance descriptions to:
+           - Add relevant keywords from JD
+           - Expand on achievements showing impact
+           - Reorder bullets by relevance to JD
+           - Include specific metrics/results
+
+        3. **Reorder Skills**: Prioritize skills that:
+           - Match JD requirements
+           - Appear in job description
+           - Are most relevant to the role
+
+        Return ONLY the rewritten content in this format:
+
+        OPTIMIZED_SUMMARY:
+        [Rewritten 2-3 sentence summary]
+
+        OPTIMIZED_EXPERIENCE:
+        [For each experience, in format:]
+        Position: [title]
+        Company: [company]
+        Description: [expanded description]
+        Achievements:
+        - [reordered/expanded achievement 1]
+        - [reordered/expanded achievement 2]
+
+        OPTIMIZED_SKILLS:
+        [Comma-separated list, ordered by relevance]
+        """
+
+        user_prompt = f"""
+        JOB DESCRIPTION:
+        {job_description}
+
+        CURRENT CV CONTENT:
+        {profile_text}
+
+        WORK EXPERIENCE DETAILS:
+        {work_experiences_text}
+
+        Optimize this CV for the job description.
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.4,
+            max_tokens=2000
+        )
+
+        optimized_content = response.choices[0].message.content
+        return optimized_content
+
+    except Exception as e:
+        return f"Error optimizing CV: {str(e)}"

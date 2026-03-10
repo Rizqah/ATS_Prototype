@@ -1,0 +1,50 @@
+{
+  "exp_1768426236.764363": {
+    "ach_1768427255.417211": {
+      "id": "ach_1768427255.417211",
+      "work_experience_id": "exp_1768426236.764363",
+      "achievement": "Increased headcount within 6  month resumption",
+      "metric": "50%",
+      "created_at": "2026-01-14T21:47:35.417225"
+    },
+    "ach_1768427402.971062": {
+      "id": "ach_1768427402.971062",
+      "work_experience_id": "exp_1768426236.764363",
+      "achievement": "Improved employee statisfactions which led to 30% job satisfaction as reported by employees",
+      "metric": "30%",
+      "created_at": "2026-01-14T21:50:02.971077"
+    }
+  },
+  "exp_1768426163.231234": {
+    "ach_1768427445.917955": {
+      "id": "ach_1768427445.917955",
+      "work_experience_id": "exp_1768426163.231234",
+      "achievement": "Launched a peer-to-peer learning programme to improve collaboration",
+      "metric": "",
+      "created_at": "2026-01-14T21:50:45.917970"
+    },
+    "ach_1768427502.551901": {
+      "id": "ach_1768427502.551901",
+      "work_experience_id": "exp_1768426163.231234",
+      "achievement": "Introduced employee recognition programme such as employee of the month, birthday celebration etc ",
+      "metric": "20% improvement in employee experience",
+      "created_at": "2026-01-14T21:51:42.551938"
+    }
+  },
+  "exp_1768427749.508521": {
+    "ach_1768427873.683778": {
+      "id": "ach_1768427873.683778",
+      "work_experience_id": "exp_1768427749.508521",
+      "achievement": "Digitally transformed HR process leading to the project launch of an Intranet ",
+      "metric": "",
+      "created_at": "2026-01-14T21:57:53.683790"
+    },
+    "ach_1768427940.574211": {
+      "id": "ach_1768427940.574211",
+      "work_experience_id": "exp_1768427749.508521",
+      "achievement": "Introduced  digital annual Pulse check survey leading more efficient feedback collection ",
+      "metric": "with 60% increase in participation",
+      "created_at": "2026-01-14T21:59:00.574230"
+    }
+  }
+}
