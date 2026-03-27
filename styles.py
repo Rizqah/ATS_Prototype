@@ -50,34 +50,130 @@ body {
 button {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 600 !important;
     transition: all 0.3s ease;
 }
 
-[data-testid="stBaseButton-primary"] > button {
-    background: linear-gradient(90deg, #60a5fa, #34d399) !important;
-    border: none !important;
-    color: white !important;
+[data-testid="stButton"] > button,
+[data-testid="stBaseButton-primary"] > button,
+[data-testid="baseButton-primary"] > button,
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%) !important;
+    border: 1px solid rgba(191, 219, 254, 0.18) !important;
+    color: #ffffff !important;
     padding: 10px 24px !important;
     font-weight: 600 !important;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28) !important;
+}
+
+[data-testid="stBaseButton-primary"] > button {
+    background: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%) !important;
+}
+
+[data-testid="stButton"] > button p,
+[data-testid="stButton"] > button span,
+[data-testid="stBaseButton-primary"] > button p,
+[data-testid="stBaseButton-primary"] > button span,
+[data-testid="baseButton-primary"] > button p,
+[data-testid="baseButton-primary"] > button span,
+.stButton > button[kind="primary"] p,
+.stButton > button[kind="primary"] span {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="stButton"] > button:hover,
+[data-testid="stBaseButton-primary"] > button:hover,
+[data-testid="baseButton-primary"] > button:hover,
+.stButton > button[kind="primary"]:hover,
+.stButton > button[data-testid="baseButton-primary"]:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(59, 130, 246, 0.32) !important;
 }
 
 [data-testid="stBaseButton-primary"] > button:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%) !important;
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(96, 165, 250, 0.3) !important;
+    box-shadow: 0 14px 28px rgba(59, 130, 246, 0.32) !important;
+}
+
+[data-testid="stButton"] > button:hover p,
+[data-testid="stButton"] > button:hover span,
+[data-testid="stBaseButton-primary"] > button:hover p,
+[data-testid="stBaseButton-primary"] > button:hover span,
+[data-testid="baseButton-primary"] > button:hover p,
+[data-testid="baseButton-primary"] > button:hover span,
+.stButton > button[kind="primary"]:hover p,
+.stButton > button[kind="primary"]:hover span {
+    color: #ffffff !important;
+}
+
+[data-testid="stBaseButton-secondary"] > button,
+[data-testid="baseButton-secondary"] > button,
+.stButton > button[kind="secondary"] {
+    background: #0f172a !important;
+    border: 2px solid #334155 !important;
+    color: #f8fafc !important;
+    padding: 10px 24px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 8px 18px rgba(2, 6, 23, 0.2) !important;
 }
 
 [data-testid="stBaseButton-secondary"] > button {
-    background: var(--color-bg-light) !important;
-    border: 2px solid var(--color-border) !important;
-    color: var(--color-text-light) !important;
+    background: #0f172a !important;
+    border: 2px solid #334155 !important;
+    color: #f8fafc !important;
     padding: 10px 24px !important;
     font-weight: 600 !important;
+    box-shadow: 0 8px 18px rgba(2, 6, 23, 0.2) !important;
+}
+
+[data-testid="baseButton-secondary"] > button p,
+[data-testid="baseButton-secondary"] > button span,
+[data-testid="stBaseButton-secondary"] > button p,
+[data-testid="stBaseButton-secondary"] > button span,
+.stButton > button[kind="secondary"] p,
+.stButton > button[kind="secondary"] span {
+    color: #f8fafc !important;
+}
+
+[data-testid="stBaseButton-secondary"] > button p,
+[data-testid="stBaseButton-secondary"] > button span {
+    color: #f8fafc !important;
+}
+
+[data-testid="stBaseButton-secondary"] > button:hover,
+[data-testid="baseButton-secondary"] > button:hover,
+.stButton > button[kind="secondary"]:hover {
+    background: #1e293b !important;
+    border-color: #60a5fa !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(30, 64, 175, 0.22) !important;
 }
 
 [data-testid="stBaseButton-secondary"] > button:hover {
-    border-color: var(--color-primary) !important;
+    background: #1e293b !important;
+    border-color: #60a5fa !important;
+    color: #ffffff !important;
     transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(30, 64, 175, 0.22) !important;
+}
+
+[data-testid="baseButton-secondary"] > button:hover p,
+[data-testid="baseButton-secondary"] > button:hover span,
+[data-testid="stBaseButton-secondary"] > button:hover p,
+[data-testid="stBaseButton-secondary"] > button:hover span,
+.stButton > button[kind="secondary"]:hover p,
+.stButton > button[kind="secondary"]:hover span {
+    color: #ffffff !important;
+}
+
+[data-testid="stBaseButton-secondary"] > button:hover p,
+[data-testid="stBaseButton-secondary"] > button:hover span {
+    color: #ffffff !important;
 }
 
 /* ========================================================

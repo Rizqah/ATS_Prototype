@@ -11,8 +11,7 @@ from security_auth_helpers import (
     show_privacy_policy,
     show_terms_of_service,
     is_email_verified,
-    show_email_verification_prompt,
-    resend_verification_email
+    show_email_verification_prompt
 )
 
 # Inject global CSS
@@ -152,34 +151,18 @@ with tab2:
             st.rerun()
     else:
         st.warning("⚠️ Email not yet verified")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            verification_code = st.text_input(
-                "Enter verification code",
-                placeholder="Check your email for the code"
+        if show_email_verification_prompt(user_email):
+            show_success_toast("Email verified")
+            st.rerun()
+
+        if (
+            st.session_state.get("verification_preview_email") == user_email
+            and st.session_state.get("verification_preview_token")
+        ):
+            st.info(
+                "Development verification code: "
+                f"`{st.session_state['verification_preview_token']}`"
             )
-        
-        with col2:
-            st.empty()
-        
-        if st.button("✓ Verify Email", use_container_width=True, type="primary"):
-            if verification_code:
-                # In production: verify against sent code
-                st.success("✅ Email verified successfully!")
-                show_success_toast("Email verified")
-            else:
-                st.error("❌ Please enter verification code")
-        
-        st.divider()
-        
-        if st.button("🔄 Resend Verification Code", use_container_width=True):
-            success, message = resend_verification_email(user_email)
-            if success:
-                st.success(f"✅ {message}")
-            else:
-                st.warning(message)
 
 # ======================================================
 # TAB 3: TWO-FACTOR AUTHENTICATION
@@ -266,7 +249,7 @@ with tab5:
         st.divider()
         
         st.write("**Session**")
-        if st.button("🚪 Logout", use_container_width=True):
+        if st.button("🚪 Logout", key="security_account_logout", use_container_width=True):
             st.session_state.authenticated = False
             st.session_state.user_email = None
             st.success("Logged out successfully!")
@@ -275,7 +258,7 @@ with tab5:
     with col2:
         st.write("**Account Actions**")
         
-        if st.button("📥 Download My Data", use_container_width=True):
+        if st.button("📥 Download My Data", key="security_download_data", use_container_width=True):
             st.info("Your data export is being prepared. Check your email for the download link.")
         
         st.divider()
@@ -291,12 +274,17 @@ with tab5:
             """)
             
             if st.text_input("Type your email to confirm: ") == user_email:
-                if st.button("🗑️ Delete My Account Permanently", use_container_width=True, type="secondary"):
+                if st.button(
+                    "🗑️ Delete My Account Permanently",
+                    key="security_delete_account",
+                    use_container_width=True,
+                    type="secondary",
+                ):
                     st.error("Account deletion requested. Please check your email to confirm.")
                     # In production: send confirmation email before actual deletion
 
 # Back button
 st.divider()
 
-if st.button("← Back to Dashboard", use_container_width=True):
+if st.button("← Back to Dashboard", key="security_back_dashboard", use_container_width=True):
     st.switch_page("pages/04_careerhub_dashboard.py")

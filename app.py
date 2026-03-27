@@ -120,7 +120,7 @@ st.markdown(
     }
 
     .lp-kpi-val {
-        color: #f8fafc;
+        color: #eb3a34;
         font-size: 1.05rem;
         font-weight: 800;
         margin: 0;
@@ -178,14 +178,14 @@ st.markdown(
     }
 
     .lp-feature {
-        border: 1px solid #334155;
+        border: 1px solid #cbd5e1;
         border-radius: 12px;
         background: #1e293b;
         padding: 16px;
     }
 
     .lp-feature h4 {
-        color: #93c5fd;
+        color: #eb3a34;
         font-size: 1rem;
         margin: 0 0 6px 0;
         font-weight: 700;

@@ -1,9 +1,17 @@
 import streamlit as st
 import re
-from careerhub_db import sign_up, sign_in, create_or_get_profile
+from careerhub_db import sign_up, sign_in, update_profile
 from styles import inject_global_css
 from ui_components import show_success_toast, show_error_toast, show_info_toast, show_error
-from security_auth_helpers import check_rate_limit, record_failed_attempt, verify_2fa_code
+from security_auth_helpers import (
+    check_rate_limit,
+    record_failed_attempt,
+    verify_2fa_code,
+    generate_verification_token,
+    send_verification_email,
+    show_email_verification_prompt,
+    is_email_verified,
+)
 
 # Inject global CSS
 inject_global_css()
@@ -21,6 +29,8 @@ if 'user_email' not in st.session_state:
     st.session_state.user_email = None
 if 'auth_mode' not in st.session_state:
     st.session_state.auth_mode = 'login'
+if "pending_verification_email" not in st.session_state:
+    st.session_state.pending_verification_email = None
 
 # Check if user is already authenticated
 if st.session_state.authenticated:
@@ -45,6 +55,30 @@ if st.session_state.authenticated:
 # Auth UI
 st.title("TrueFit")
 st.subheader("Your AI-Powered Career Hub")
+
+pending_verification_email = st.session_state.get("pending_verification_email")
+if pending_verification_email and not is_email_verified(pending_verification_email):
+    st.warning("Verify your email before accessing your dashboard.")
+    if show_email_verification_prompt(pending_verification_email):
+        from_recruiter = st.session_state.get("auth_source") == "recruiter"
+        st.session_state.authenticated = True
+        st.session_state.user_email = pending_verification_email
+        st.session_state.user_role = "recruiter" if from_recruiter else "applicant_careerhub"
+        st.session_state.pending_verification_email = None
+        show_success_toast("Email verified. You can now access your account.")
+        st.switch_page("pages/02_recruiter.py" if from_recruiter else "pages/04_careerhub_dashboard.py")
+
+    if (
+        st.session_state.get("verification_preview_email") == pending_verification_email
+        and st.session_state.get("verification_preview_token")
+    ):
+        st.info(
+            "Development verification code: "
+            f"`{st.session_state['verification_preview_token']}`"
+        )
+
+    st.divider()
+    st.stop()
 
 st.markdown(
     """
@@ -115,6 +149,14 @@ with tab1:
                 result = sign_in(login_email, login_password)
 
                 if result["success"]:
+                    if not result.get("email_verified", False):
+                        st.session_state.pending_verification_email = login_email
+                        show_info_toast("Verify your email to finish logging in.")
+                        resend_needed = st.session_state.get("verification_preview_email") != login_email
+                        if resend_needed:
+                            send_verification_email(login_email, "", generate_verification_token())
+                        st.rerun()
+
                     from_recruiter = st.session_state.get("auth_source") == "recruiter"
                     st.session_state.authenticated = True
                     st.session_state.user_email = login_email
@@ -184,17 +226,20 @@ with tab2:
                 result = sign_up(signup_email, signup_password)
 
                 if result["success"]:
-                    from_recruiter = st.session_state.get("auth_source") == "recruiter"
-                    # Update profile with name
-                    from careerhub_db import update_profile
                     update_profile(signup_email, {"full_name": signup_fullname})
+                    st.session_state.pending_verification_email = signup_email
 
-                    st.session_state.authenticated = True
-                    st.session_state.user_email = signup_email
-                    st.session_state.user_role = "recruiter" if from_recruiter else "applicant_careerhub"
-                    show_success_toast("Account created successfully!")
-                    st.balloons()
-                    st.switch_page("pages/02_recruiter.py" if from_recruiter else "pages/04_careerhub_dashboard.py")
+                    email_sent, message = send_verification_email(
+                        signup_email,
+                        signup_fullname,
+                        generate_verification_token(),
+                    )
+                    if email_sent:
+                        show_success_toast("Account created. Check your email for the verification code.")
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        show_error_toast(message)
                 else:
                     show_error_toast(result['error'])
 
