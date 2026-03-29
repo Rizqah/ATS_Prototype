@@ -90,10 +90,10 @@ def sign_in(email: str, password: str) -> dict:
         users = load_json(USERS_FILE)
         
         if email not in users:
-            return {"success": False, "error": "Email not found"}
+            return {"success": False, "error": "email not registered"}
         
         if users[email]["password_hash"] != hash_password(password):
-            return {"success": False, "error": "Incorrect password"}
+            return {"success": False, "error": "email or password incorrect"}
         
         return {
             "success": True,
