@@ -95,6 +95,8 @@ if 'comparison_view' not in st.session_state:
     st.session_state.comparison_view = False
 if 'improvement_suggestions' not in st.session_state:
     st.session_state.improvement_suggestions = None
+if 'analyzed_job_description' not in st.session_state:
+    st.session_state.analyzed_job_description = None
 
 # ======================================================
 # INPUT SECTION
@@ -140,42 +142,6 @@ if template:
 
 # Show helper tips
 display_jd_helper_tips()
-
-# Initialize session state
-if 'resume_cleaned' not in st.session_state:
-    st.session_state.resume_cleaned = None
-if 'match_score' not in st.session_state:
-    st.session_state.match_score = None
-if 'comparison_view' not in st.session_state:
-    st.session_state.comparison_view = False
-if 'improvement_suggestions' not in st.session_state:
-    st.session_state.improvement_suggestions = None
-
-# ======================================================
-# INPUT SECTION
-# ======================================================
-st.header("1️⃣ Upload Your Resume")
-
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    resume_file = st.file_uploader(
-        "Upload your resume (PDF):",
-        type=['pdf'],
-        help="Text-based PDF only (not scanned images). Max 10 MB."
-    )
-
-with col2:
-    st.info("📝 **Tip:** Use a well-formatted, text-based PDF for best results")
-
-st.header("2️⃣ Paste the Job Description")
-
-job_description = st.text_area(
-    "Paste the full job description:",
-    height=250,
-    placeholder="Job title, responsibilities, required skills, qualifications, benefits, etc.",
-    help="The more detailed, the better the analysis. Aim for 200+ words."
-)
 
 # ======================================================
 # PROCESS & ANALYSIS
@@ -250,6 +216,7 @@ if resume_file and job_description and st.button("🔍 Analyze Resume & Job Matc
         with st.spinner("⏳ Generating personalized improvement suggestions..."):
             suggestions = generate_resume_improvement_suggestions(job_description, cleaned_resume)
             st.session_state.improvement_suggestions = suggestions
+            st.session_state.analyzed_job_description = job_description
         
         show_success_toast("Analysis complete! See your results below.")
         
@@ -361,7 +328,7 @@ if st.session_state.match_score is not None:
         with col2:
             st.write("**Job Description**")
             with st.expander("View job description", expanded=False):
-                st.text(job_description)
+                st.text(st.session_state.analyzed_job_description or job_description)
         
         st.info("""
         💡 **How to use this comparison:**
@@ -409,6 +376,7 @@ if st.session_state.match_score is not None:
         st.session_state.match_score = None
         st.session_state.comparison_view = False
         st.session_state.improvement_suggestions = None
+        st.session_state.analyzed_job_description = None
         st.rerun()
 
 # Sidebar

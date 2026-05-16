@@ -5,6 +5,7 @@ import io
 import streamlit as st
 from pypdf import PdfReader
 import os
+import re
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
 
@@ -178,6 +179,55 @@ def clean_and_structure_resume(raw_resume_text: str) -> str:
     except Exception as e:
         return f"Unexpected error during cleaning: {str(e)}"
 
+
+def extract_candidate_name(raw_resume_text: str) -> Optional[str]:
+    """
+    Try to infer the candidate's name from the top of the raw resume text.
+
+    Falls back to None when a confident name is not found.
+    """
+    if not raw_resume_text or not raw_resume_text.strip():
+        return None
+
+    section_headings = {
+        "summary", "profile", "experience", "professional experience",
+        "work experience", "employment", "education", "skills",
+        "projects", "certifications", "contact", "objective", "resume", "cv"
+    }
+
+    lines = [line.strip() for line in raw_resume_text.splitlines() if line.strip()]
+
+    for line in lines[:10]:
+        normalized = re.sub(r"\s+", " ", line).strip(" |,-")
+        lowered = normalized.lower()
+
+        if lowered in section_headings:
+            continue
+        if "@" in normalized or "http" in lowered or "www." in lowered:
+            continue
+        if sum(char.isdigit() for char in normalized) >= 2:
+            continue
+
+        words = normalized.split()
+        if not 2 <= len(words) <= 4:
+            continue
+
+        cleaned_words = []
+        valid = True
+        for word in words:
+            token = re.sub(r"[^A-Za-z'’-]", "", word)
+            if not token or len(token) < 2:
+                valid = False
+                break
+            cleaned_words.append(token)
+
+        if not valid:
+            continue
+
+        return " ".join(word[:1].upper() + word[1:].lower() for word in cleaned_words)
+
+    return None
+
 # ======================================================
 # 5. EMBEDDING & RANKING ENGINE FUNCTIONS
 # ======================================================
@@ -264,7 +314,8 @@ def rank_candidates(
             scored_candidates.append({
                 "name": candidate['name'],
                 "score": float(score),
-                "resume": candidate['resume']
+                "resume": candidate['resume'],
+                "candidate_name": candidate.get('candidate_name', candidate['name'])
             })
         
         # Sort by score descending
@@ -350,7 +401,8 @@ def generate_resume_improvement_suggestions(
 # ======================================================
 def generate_compliant_feedback(
     job_description: str, 
-    candidate_resume: str
+    candidate_resume: str,
+    candidate_name: Optional[str] = None
 ) -> str:
     """
     Generates legally compliant, constructive rejection feedback.
@@ -358,6 +410,7 @@ def generate_compliant_feedback(
     Args:
         job_description: The job posting
         candidate_resume: The candidate's resume (cleaned/structured)
+        candidate_name: Candidate name to use in the salutation
         
     Returns:
         Rejection email text
@@ -383,9 +436,13 @@ def generate_compliant_feedback(
     - Hard Skills, Objective Metrics, Demonstrated Specificity, and Mismatched Depth.
 
     Write a polite and legally safe rejection email using this structured, tangible advice.
+    If a candidate name is provided, address the email to that exact name instead of using placeholders.
     """
 
     user_prompt = f"""
+    CANDIDATE NAME:
+    {candidate_name or "Not available"}
+
     JOB DESCRIPTION:
     {job_description}
 

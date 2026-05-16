@@ -6,7 +6,8 @@ from ats_engine import (
     rank_candidates, 
     generate_compliant_feedback, 
     extract_text_from_pdf,
-    clean_and_structure_resume
+    clean_and_structure_resume,
+    extract_candidate_name
 )
 from styles import inject_global_css
 from form_helpers import (
@@ -251,6 +252,7 @@ if process_button:
             
             # Step 2: Clean and structure
             clean_resume_text = clean_and_structure_resume(raw_resume_text)
+            candidate_name = extract_candidate_name(raw_resume_text)
             
             if clean_resume_text.startswith("Error"):
                 st.warning(f"⚠️ Processing failed for {file.name}")
@@ -260,7 +262,8 @@ if process_button:
             # Add to ranking list
             candidate_list_for_ranking.append({
                 "name": file.name.replace('.pdf', ''),
-                "resume": clean_resume_text
+                "resume": clean_resume_text,
+                "candidate_name": candidate_name or file.name.replace('.pdf', '')
             })
             
             with processing_status:
@@ -283,135 +286,138 @@ if process_button:
     except Exception as e:
         st.error(f"❌ Unexpected error: {str(e)}")
         st.stop()
-        
-        # Check results
-        if not candidate_list_for_ranking:
-            st.error("❌ No resumes could be processed.")
-            st.stop()
-        
-        st.success(f"✅ Successfully processed {len(candidate_list_for_ranking)}/{len(uploaded_files)} resumes")
-        
-        # --- RANKING ---
-        with st.spinner("🔍 Ranking candidates..."):
-            ranking_results = rank_candidates(job_description, candidate_list_for_ranking)
-        
-        if not ranking_results:
-            st.error("❌ Ranking failed. Please try again.")
-            st.stop()
-        
-        # --- DISPLAY RESULTS ---
-        st.subheader("✅ Ranking Results")
-        
-        # Convert to DataFrame for filtering/sorting
-        df_candidates = pd.DataFrame([
-            {
-                'Rank': idx + 1,
-                'Candidate': result['name'],
-                'Match Score': result['score'],
-                'Match % (for display)': f"{result['score'] * 100:.1f}%",
-                'Status': 'Reviewed',
-                'resume': result.get('resume', ''),
-                'full_result': result
-            }
-            for idx, result in enumerate(ranking_results)
-        ])
-        
-        # Store results
-        st.session_state.ranked_data = ranking_results
-        
-        # Summary metrics
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Total Candidates", len(ranking_results))
-        with col2:
-            top_score = ranking_results[0]['score'] * 100
-            st.metric("Top Match", f"{top_score:.1f}%")
-        with col3:
-            bottom_score = ranking_results[-1]['score'] * 100
-            st.metric("Lowest Match", f"{bottom_score:.1f}%")
-        with col4:
-            avg_score = sum(r['score'] for r in ranking_results) / len(ranking_results) * 100
-            st.metric("Average", f"{avg_score:.1f}%")
-        
-        st.divider()
-        
-        # Filtering and Sorting Controls
-        st.subheader("🔍 Filter & Sort Results")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            min_score, max_score = st.slider(
-                "Match Score Range (%)",
-                min_value=0,
-                max_value=100,
-                value=(int(min(df_candidates['Match Score']) * 100), 100),
-                step=5,
-                help="Filter candidates by match score percentage"
-            )
-        
-        with col2:
-            sort_by = st.selectbox(
-                "Sort by",
-                ["Match Score", "Name", "Rank"],
-                help="How to order the results"
-            )
-        
-        with col3:
-            sort_order = st.selectbox(
-                "Order",
-                ["Descending", "Ascending"],
-                help="Ascending or Descending"
-            )
-        
-        # Apply filters and sorting
-        filtered_df = apply_filters(
-            df_candidates,
-            min_score / 100,
-            max_score / 100,
-            ['Reviewed'],
-            'Match Score'
+
+    # Check results
+    if not candidate_list_for_ranking:
+        st.error("❌ No resumes could be processed.")
+        st.stop()
+
+    st.success(f"✅ Successfully processed {len(candidate_list_for_ranking)}/{len(uploaded_files)} resumes")
+
+    # --- RANKING ---
+    with st.spinner("🔍 Ranking candidates..."):
+        ranking_results = rank_candidates(job_description, candidate_list_for_ranking)
+
+    if not ranking_results:
+        st.error("❌ Ranking failed. Please try again.")
+        st.stop()
+
+    # --- DISPLAY RESULTS ---
+    st.subheader("✅ Ranking Results")
+
+    # Convert to DataFrame for filtering/sorting
+    df_candidates = pd.DataFrame([
+        {
+            'Rank': idx + 1,
+            'Candidate': result['name'],
+            'Candidate Name': result.get('candidate_name', result['name']),
+            'Match Score': result['score'],
+            'Match % (for display)': f"{result['score'] * 100:.1f}%",
+            'Status': 'Reviewed',
+            'resume': result.get('resume', ''),
+            'full_result': result
+        }
+        for idx, result in enumerate(ranking_results)
+    ])
+
+    # Store results
+    st.session_state.ranked_data = ranking_results
+
+    # Summary metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Candidates", len(ranking_results))
+    with col2:
+        top_score = ranking_results[0]['score'] * 100
+        st.metric("Top Match", f"{top_score:.1f}%")
+    with col3:
+        bottom_score = ranking_results[-1]['score'] * 100
+        st.metric("Lowest Match", f"{bottom_score:.1f}%")
+    with col4:
+        avg_score = sum(r['score'] for r in ranking_results) / len(ranking_results) * 100
+        st.metric("Average", f"{avg_score:.1f}%")
+
+    st.divider()
+
+    # Filtering and Sorting Controls
+    st.subheader("🔍 Filter & Sort Results")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        min_score, max_score = st.slider(
+            "Match Score Range (%)",
+            min_value=0,
+            max_value=100,
+            value=(int(min(df_candidates['Match Score']) * 100), 100),
+            step=5,
+            help="Filter candidates by match score percentage"
         )
-        
-        sorted_df = sort_candidates(
-            filtered_df,
-            "Match Score" if sort_by == "Match Score" else ("name" if sort_by == "Name" else "Rank"),
-            sort_order.lower()
+
+    with col2:
+        sort_by = st.selectbox(
+            "Sort by",
+            ["Match Score", "Name", "Rank"],
+            help="How to order the results"
         )
-        
-        # Display candidates table
-        st.subheader(f"📊 Candidates ({len(sorted_df)} of {len(df_candidates)} matches)")
-        
-        # Display each candidate with enhanced UI
-        for idx, row in sorted_df.iterrows():
-            col1, col2, col3 = st.columns([2, 1, 1])
-            
-            with col1:
-                st.write(f"**#{row['Rank']}. {row['Candidate']}**")
-            
-            with col2:
-                show_match_score_card(
+
+    with col3:
+        sort_order = st.selectbox(
+            "Order",
+            ["Descending", "Ascending"],
+            help="Ascending or Descending"
+        )
+
+    # Apply filters and sorting
+    filtered_df = apply_filters(
+        df_candidates,
+        min_score / 100,
+        max_score / 100,
+        ['Reviewed'],
+        'Match Score'
+    )
+
+    sorted_df = sort_candidates(
+        filtered_df,
+        "Match Score" if sort_by == "Match Score" else ("name" if sort_by == "Name" else "Rank"),
+        sort_order.lower()
+    )
+
+    # Display candidates table
+    st.subheader(f"📊 Candidates ({len(sorted_df)} of {len(df_candidates)} matches)")
+
+    # Display each candidate with enhanced UI
+    for idx, row in sorted_df.iterrows():
+        col1, col2, col3 = st.columns([2, 1, 1])
+
+        with col1:
+            st.write(f"**#{row['Rank']}. {row['Candidate Name']}**")
+            if row['Candidate Name'] != row['Candidate']:
+                st.caption(f"File: {row['Candidate']}.pdf")
+
+        with col2:
+            show_match_score_card(
+                row['Match Score'],
+                st.session_state.job_description[:50] + "...",
+                row['Candidate']
+            )
+
+        with col3:
+            # Download PDF report for this candidate
+            if st.button(
+                "📄 Download Report",
+                key=f"download_{row['Candidate']}",
+                use_container_width=True,
+                help="Download match report as PDF"
+            ):
+                download_match_report_button(
+                    row['Candidate'],
                     row['Match Score'],
-                    st.session_state.job_description[:50] + "...",
-                    row['Candidate']
+                    st.session_state.job_description[:100],
+                    [],  # matched_skills would come from ats_engine analysis
+                    [],  # missing_skills
+                    []   # suggestions
                 )
-            
-            with col3:
-                # Download PDF report for this candidate
-                if st.button(
-                    "📄 Download Report",
-                    key=f"download_{row['Candidate']}",
-                    use_container_width=True,
-                    help="Download match report as PDF"
-                ):
-                    download_match_report_button(
-                        row['Candidate'],
-                        row['Match Score'],
-                        st.session_state.job_description[:100],
-                        [],  # matched_skills would come from ats_engine analysis
-                        [],  # missing_skills
-                        []   # suggestions
-                    )
 
 # ======================================================
 # 4. FEEDBACK ENGINE
@@ -428,23 +434,29 @@ if st.session_state.ranked_data:
     )
     
     # Candidate selection
+    candidate_options = {
+        f"{c.get('candidate_name', c['name'])} ({c['name']})": c['name']
+        for c in st.session_state.ranked_data
+    }
+
     col1, col2 = st.columns([3, 1])
     with col1:
-        selected_candidate_name = st.selectbox(
+        selected_candidate_label = st.selectbox(
             "Select candidate for feedback:",
-            options=[c['name'] for c in st.session_state.ranked_data],
+            options=list(candidate_options.keys()),
             index=len(st.session_state.ranked_data) - 1,
             help="Lowest-ranked candidate is selected by default"
         )
     
     with col2:
         # Show score of selected candidate
+        selected_candidate_name = candidate_options[selected_candidate_label]
         selected = next(c for c in st.session_state.ranked_data if c['name'] == selected_candidate_name)
         st.metric("Match Score", f"{selected['score'] * 100:.1f}%")
     
     # Generate feedback button
     if st.button(
-        f"✍️ Draft Email for {selected_candidate_name}",
+        f"✍️ Draft Email for {selected.get('candidate_name') or selected_candidate_name}",
         type="primary",
         use_container_width=True
     ):
@@ -452,7 +464,8 @@ if st.session_state.ranked_data:
             try:
                 feedback_draft = generate_compliant_feedback(
                     st.session_state.job_description,
-                    selected['resume']
+                    selected['resume'],
+                    selected.get('candidate_name') or selected.get('name')
                 )
                 
                 if feedback_draft.startswith("Error"):
