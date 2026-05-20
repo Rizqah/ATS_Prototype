@@ -286,7 +286,7 @@ HELP_TEXTS = {
     
     # Profile-related
     "full_name": "Your first and last name as you'd like it to appear on official documents.",
-    "email": "Your primary email address. We'll use this for account verification and communications.",
+    "email": "Your primary email address. We'll use this for account communications.",
     "phone": "Your contact phone number including country code (e.g., +1-234-567-8900).",
     "location": "Your current city/state or country. Used for location-based job matching.",
     "professional_summary": "A brief 2-3 sentence overview of your professional background and goals.",

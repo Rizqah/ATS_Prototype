@@ -67,12 +67,6 @@ def sign_up(email: str, password: str) -> dict:
             "email": email,
             "password_hash": hash_password(password),
             "created_at": datetime.now().isoformat(),
-            "email_verified": False,
-            "verification_token": None,
-            "verification_sent_at": None,
-            "verification_expires_at": None,
-            "verification_resend_count": 0,
-            "last_verification_resend_at": None,
         }
         
         save_json(USERS_FILE, users)
@@ -98,7 +92,6 @@ def sign_in(email: str, password: str) -> dict:
         return {
             "success": True,
             "user": email,
-            "email_verified": users[email].get("email_verified", False),
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -111,21 +104,7 @@ def get_user(email: str) -> dict:
         if email not in users:
             return {"success": False, "error": "Email not found"}
 
-        user = users[email]
-        if "email_verified" not in user:
-            user["email_verified"] = False
-        if "verification_token" not in user:
-            user["verification_token"] = None
-        if "verification_sent_at" not in user:
-            user["verification_sent_at"] = None
-        if "verification_expires_at" not in user:
-            user["verification_expires_at"] = None
-        if "verification_resend_count" not in user:
-            user["verification_resend_count"] = 0
-        if "last_verification_resend_at" not in user:
-            user["last_verification_resend_at"] = None
-
-        return {"success": True, "user": user}
+        return {"success": True, "user": users[email]}
     except Exception as e:
         return {"success": False, "error": str(e)}
 

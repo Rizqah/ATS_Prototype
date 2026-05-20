@@ -1,5 +1,5 @@
 """
-Security & Authentication Helpers - Email verification, password reset, 2FA, rate limiting, privacy
+Security & Authentication Helpers - Password reset, 2FA, rate limiting, privacy
 Provides utilities for enhanced authentication and security features.
 """
 
@@ -13,284 +13,20 @@ import json
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from careerhub_db import get_user, update_user
 
 load_dotenv()
 
 # ======================================================
-# EMAIL VERIFICATION SYSTEM (Task 25)
-# ======================================================
-
-VERIFICATION_CONFIG = {
-    "token_expiry_hours": 24,
-    "max_resend_attempts": 3,
-    "resend_cooldown_minutes": 5,
-    "code_length": 6
-}
-
-
-def get_config_value(key: str) -> str:
-    """Read config from .env first, then Streamlit secrets."""
-    value = os.getenv(key)
-    if value:
-        return value
-
-    try:
-        return st.secrets.get(key, "")
-    except Exception:
-        return ""
-
-
-def send_email_with_sendgrid(
-    to_email: str,
-    subject: str,
-    plain_text: str,
-    html_content: str,
-) -> Tuple[bool, str]:
-    """Send an email with SendGrid when configured."""
-    api_key = get_config_value("SENDGRID_API_KEY")
-    from_email = get_config_value("SENDGRID_FROM_EMAIL")
-    from_name = get_config_value("SENDGRID_FROM_NAME") or "TrueFit"
-
-    if not api_key or not from_email:
-        return False, "SendGrid is not configured"
-
-    try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail
-
-        message = Mail(
-            from_email=(from_email, from_name),
-            to_emails=to_email,
-            subject=subject,
-            plain_text_content=plain_text,
-            html_content=html_content,
-        )
-
-        client = SendGridAPIClient(api_key)
-        response = client.send(message)
-        if 200 <= response.status_code < 300:
-            return True, "Email sent"
-        return False, f"SendGrid returned status {response.status_code}"
-    except Exception as e:
-        return False, f"SendGrid send failed: {str(e)}"
-
-
-def generate_verification_token() -> str:
-    """Generate a numeric verification code."""
-    max_value = 10 ** VERIFICATION_CONFIG["code_length"]
-    return str(secrets.randbelow(max_value)).zfill(VERIFICATION_CONFIG["code_length"])
-
-
-def send_verification_email(email: str, full_name: str, token: str) -> Tuple[bool, str]:
-    """
-    Send verification email to user.
-    
-    Note: In production, this would use SendGrid, AWS SES, or similar.
-    For development, we simulate the send.
-    
-    Args:
-        email: User's email address
-        full_name: User's full name
-        token: Verification token
-        
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
-    
-    try:
-        user_result = get_user(email)
-        if not user_result["success"]:
-            return False, user_result["error"]
-
-        user = user_result["user"]
-        resend_count = user.get("verification_resend_count", 0)
-        last_resend_at = user.get("last_verification_resend_at")
-        now = datetime.now()
-
-        if last_resend_at:
-            last_resend_time = datetime.fromisoformat(last_resend_at)
-            cooldown_time = timedelta(minutes=VERIFICATION_CONFIG["resend_cooldown_minutes"])
-            if now < last_resend_time + cooldown_time:
-                remaining = int((last_resend_time + cooldown_time - now).total_seconds() / 60) + 1
-                return False, f"Please wait {remaining} minute(s) before resending"
-
-        is_first_send = user.get("verification_sent_at") is None
-        if not is_first_send and resend_count >= VERIFICATION_CONFIG["max_resend_attempts"]:
-            return False, "Maximum resend attempts reached. Please contact support."
-
-        expires_at = now + timedelta(hours=VERIFICATION_CONFIG["token_expiry_hours"])
-        update_result = update_user(
-            email,
-            {
-                "verification_token": token,
-                "verification_sent_at": now.isoformat(),
-                "verification_expires_at": expires_at.isoformat(),
-                "verification_resend_count": resend_count if is_first_send else resend_count + 1,
-                "last_verification_resend_at": None if is_first_send else now.isoformat(),
-                "email_verified": False,
-            },
-        )
-        if not update_result["success"]:
-            return False, update_result["error"]
-
-        subject = "Verify your TrueFit email"
-        greeting_name = full_name.strip() or "there"
-        plain_text = (
-            f"Hi {greeting_name},\n\n"
-            f"Your TrueFit verification code is: {token}\n\n"
-            f"This code expires in {VERIFICATION_CONFIG['token_expiry_hours']} hours.\n"
-            "If you did not create this account, you can ignore this email."
-        )
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
-            <p>Hi {greeting_name},</p>
-            <p>Your TrueFit verification code is:</p>
-            <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; margin: 24px 0; color: #1d4ed8;">
-                {token}
-            </div>
-            <p>This code expires in {VERIFICATION_CONFIG["token_expiry_hours"]} hours.</p>
-            <p>If you did not create this account, you can ignore this email.</p>
-        </div>
-        """
-
-        email_sent, email_message = send_email_with_sendgrid(
-            email,
-            subject,
-            plain_text,
-            html_content,
-        )
-        if email_sent:
-            st.session_state.pop("verification_preview_token", None)
-            st.session_state.pop("verification_preview_email", None)
-            return True, f"Verification email sent to {email}"
-
-        st.session_state["verification_preview_token"] = token
-        st.session_state["verification_preview_email"] = email
-        return True, f"{email_message}. Using development preview code instead."
-    except Exception as e:
-        return False, f"Failed to send email: {str(e)}"
-
-
-def show_email_verification_prompt(email: str) -> bool:
-    """
-    Display email verification UI.
-    
-    Args:
-        email: Email to verify
-        
-    Returns:
-        True if verified, False otherwise
-    """
-    
-    st.info(f"📧 Please verify your email: **{email}**")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        verification_code = st.text_input(
-            "Enter verification code",
-            placeholder="6-digit code from your email",
-            max_chars=VERIFICATION_CONFIG["code_length"]
-        )
-    
-    with col2:
-        if st.button("✓ Verify", use_container_width=True):
-            if verify_email_token(email, verification_code):
-                st.success("✅ Email verified successfully!")
-                return True
-            else:
-                st.error("❌ Invalid or expired code. Please try again.")
-                return False
-    
-    # Resend option
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("🔄 Resend Code", use_container_width=True):
-            success, message = resend_verification_email(email)
-            if success:
-                st.success(message)
-            else:
-                st.warning(message)
-    
-    with col2:
-        if st.button("📧 Change Email", use_container_width=True):
-            st.session_state.change_email = True
-            st.rerun()
-    
-    return False
-
-
-def verify_email_token(email: str, token: str) -> bool:
-    """
-    Verify email token.
-    
-    Args:
-        email: Email address
-        token: Verification token
-        
-    Returns:
-        True if token is valid, False otherwise
-    """
-    
-    user_result = get_user(email)
-    if not user_result["success"]:
-        return False
-
-    user = user_result["user"]
-    stored_token = user.get("verification_token")
-    expires_at_raw = user.get("verification_expires_at")
-
-    if user.get("email_verified"):
-        return True
-    if not stored_token or not expires_at_raw:
-        return False
-
-    expires_at = datetime.fromisoformat(expires_at_raw)
-    if datetime.now() > expires_at:
-        return False
-
-    if stored_token != token:
-        return False
-
-    update_result = update_user(
-        email,
-        {
-            "email_verified": True,
-            "verification_token": None,
-            "verification_expires_at": None,
-        },
-    )
-    return update_result["success"]
-
-
-def resend_verification_email(email: str) -> Tuple[bool, str]:
-    """
-    Resend verification email with cooldown check.
-    
-    Args:
-        email: Email address
-        
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
-    
-    new_token = generate_verification_token()
-    return send_verification_email(email, "", new_token)
-
-
-def is_email_verified(email: str) -> bool:
-    """Check if email is verified"""
-    user_result = get_user(email)
-    if not user_result["success"]:
-        return False
-    return user_result["user"].get("email_verified", False)
-
-
-# ======================================================
 # PASSWORD RESET FLOW (Task 2)
 # ======================================================
+
+TOKEN_CODE_LENGTH = 6
+
+def generate_numeric_token() -> str:
+    """Generate a numeric security code."""
+    max_value = 10 ** TOKEN_CODE_LENGTH
+    return str(secrets.randbelow(max_value)).zfill(TOKEN_CODE_LENGTH)
+
 
 def show_password_reset_request() -> Optional[str]:
     """
@@ -310,7 +46,7 @@ def show_password_reset_request() -> Optional[str]:
     if st.button("📧 Send Reset Link", use_container_width=True, type="primary"):
         if email and "@" in email:
             # In production: send actual email with reset link
-            reset_token = generate_verification_token()
+            reset_token = generate_numeric_token()
             
             # Store reset token
             if "password_reset_tokens" not in st.session_state:

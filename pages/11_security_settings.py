@@ -2,16 +2,11 @@ import streamlit as st
 from styles import inject_global_css
 from ui_components import show_top_navigation, show_success_toast, show_error_toast
 from security_auth_helpers import (
-    show_password_reset_request,
-    show_password_reset_form,
     check_password_strength,
     show_2fa_setup_screen,
-    verify_2fa_code,
     show_privacy_settings_modal,
     show_privacy_policy,
     show_terms_of_service,
-    is_email_verified,
-    show_email_verification_prompt
 )
 
 # Inject global CSS
@@ -36,9 +31,8 @@ show_top_navigation("Security Settings")
 st.title("🔒 Security & Privacy")
 
 # Create tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "Password",
-    "Email Verification",
     "Two-Factor Auth",
     "Privacy",
     "Account"
@@ -134,40 +128,9 @@ with tab1:
             st.write("")
 
 # ======================================================
-# TAB 2: EMAIL VERIFICATION
+# TAB 2: TWO-FACTOR AUTHENTICATION
 # ======================================================
 with tab2:
-    st.subheader("📧 Email Verification")
-    
-    st.write(f"**Current Email:** {user_email}")
-    
-    verified = is_email_verified(user_email)
-    
-    if verified:
-        st.success("✅ Email verified")
-        
-        if st.button("📧 Use Different Email", use_container_width=True):
-            st.session_state.change_email = True
-            st.rerun()
-    else:
-        st.warning("⚠️ Email not yet verified")
-        if show_email_verification_prompt(user_email):
-            show_success_toast("Email verified")
-            st.rerun()
-
-        if (
-            st.session_state.get("verification_preview_email") == user_email
-            and st.session_state.get("verification_preview_token")
-        ):
-            st.info(
-                "Development verification code: "
-                f"`{st.session_state['verification_preview_token']}`"
-            )
-
-# ======================================================
-# TAB 3: TWO-FACTOR AUTHENTICATION
-# ======================================================
-with tab3:
     st.subheader("🔐 Two-Factor Authentication (2FA)")
     
     st.info("""
@@ -210,9 +173,9 @@ with tab3:
                 st.rerun()
 
 # ======================================================
-# TAB 4: PRIVACY & DATA
+# TAB 3: PRIVACY & DATA
 # ======================================================
-with tab4:
+with tab3:
     st.subheader("🔒 Privacy & Data Management")
     
     mode = st.radio(
@@ -233,9 +196,9 @@ with tab4:
         show_terms_of_service()
 
 # ======================================================
-# TAB 5: ACCOUNT MANAGEMENT
+# TAB 4: ACCOUNT MANAGEMENT
 # ======================================================
-with tab5:
+with tab4:
     st.subheader("👤 Account Management")
     
     col1, col2 = st.columns(2)

@@ -12,7 +12,6 @@ from cv_helpers import (
     show_cv_dashboard_empty_state, show_cv_version_history,
     show_cv_quick_actions, show_cv_statistics
 )
-from security_auth_helpers import is_email_verified
 
 # Inject global CSS
 inject_global_css()
@@ -50,28 +49,6 @@ cvs_limit = limit_result.get("limit", 20)
 
 st.title("📊 Dashboard")
 st.subheader(f"Welcome back, {profile.get('full_name', user_email)}! 👋")
-
-# Security Status
-st.header("🔐 Account Security")
-
-sec_col1, sec_col2, sec_col3 = st.columns(3)
-
-email_verified = is_email_verified(user_email)
-
-with sec_col1:
-    if email_verified:
-        st.success("✅ Email Verified")
-    else:
-        st.warning("⚠️ Email Not Verified")
-
-with sec_col2:
-    st.info("🔑 Password: Secure")
-
-with sec_col3:
-    if st.button("🔐 Manage Security", use_container_width=True):
-        st.switch_page("pages/11_security_settings.py")
-
-st.divider()
 
 # Profile Completion Status
 st.header("1️⃣ Profile Status")
