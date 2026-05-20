@@ -10,6 +10,4 @@ showSidebarNavigation = false
 
 [server]
 headless = true
-port = 8080
-enableCORS = false
-address = "0.0.0.0"
+
