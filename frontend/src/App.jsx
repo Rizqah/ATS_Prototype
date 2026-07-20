@@ -1197,75 +1197,147 @@ function ApplicationsPage() {
   );
 }
 
-function Profile() {
-  const skills = ["React", "JavaScript", "CSS Architecture", "HTML", "REST/GraphQL", "Git", "Responsive Design", "Figma", "Redux"];
-  const sections = ["Basics", "Summary", "Skills", "Experience", "Education"];
+function Profile({ user, setPage }) {
+  const [bundle, setBundle] = useState({ profile: {}, experiences: [], skills: [] });
+  const [profile, setProfile] = useState({});
+  const [skillName, setSkillName] = useState("");
+  const [experience, setExperience] = useState({ company: "", position: "", start_date: "", end_date: "", current_job: false, description: "" });
+  const [showExperienceForm, setShowExperienceForm] = useState(false);
+  const [busy, setBusy] = useState(true);
+  const [message, setMessage] = useState("");
+
+  const loadProfile = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      let data;
+      try {
+        data = await api.profile(user);
+      } catch {
+        await api.createProfile(user, user.split("@")[0]);
+        data = await api.profile(user);
+      }
+      setBundle(data);
+      setProfile(data.profile || {});
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => { loadProfile(); }, [user]);
+
+  const saveProfile = async () => {
+    setBusy(true);
+    try {
+      const result = await api.updateProfile(user, profile);
+      setProfile(result.profile);
+      setMessage("Profile saved.");
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addSkill = async () => {
+    if (!skillName.trim()) return;
+    try {
+      await api.addSkill(user, { skill_name: skillName.trim(), proficiency: "Intermediate" });
+      setSkillName("");
+      await loadProfile();
+    } catch (error) { setMessage(error.message); }
+  };
+
+  const removeSkill = async (id) => {
+    try { await api.deleteSkill(user, id); await loadProfile(); } catch (error) { setMessage(error.message); }
+  };
+
+  const addExperience = async () => {
+    if (!experience.company.trim() || !experience.position.trim()) return;
+    try {
+      await api.addExperience(user, experience);
+      setExperience({ company: "", position: "", start_date: "", end_date: "", current_job: false, description: "" });
+      setShowExperienceForm(false);
+      await loadProfile();
+    } catch (error) { setMessage(error.message); }
+  };
+
+  const removeExperience = async (id) => {
+    try { await api.deleteExperience(user, id); await loadProfile(); } catch (error) { setMessage(error.message); }
+  };
+
+  const completed = [profile.full_name, profile.professional_title, profile.professional_summary, bundle.skills.length, bundle.experiences.length].filter(Boolean).length;
+  const strength = Math.round((completed / 5) * 100);
+  const displayName = profile.full_name || user?.split("@")[0] || "Candidate";
+  const initials = displayName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   return (
     <div className="page-shell">
       <section className="page-heading">
         <div><span className="eyebrow">Your career profile</span><h1>Profile</h1><p>Build it once. TrueFit reuses your profile to generate tailored CVs and match you to every new role.</p></div>
-        <Button icon={FileText}>Generate CV</Button>
+        <Button icon={FileText} onClick={() => setPage("optimizer")}>Generate CV</Button>
       </section>
+
+      {message && <div className="success-message profile-message">{message}</div>}
+      {busy && !profile.user_email ? <section className="panel empty-state compact-empty"><h2>Loading your profile...</h2></section> :
 
       <section className="profile-layout profile-full-layout">
         <aside className="profile-sidebar">
           <article className="panel profile-summary">
-            <div className="large-avatar">AR</div>
-            <h2>Alex Rivera</h2>
-            <p>Frontend Engineer</p>
-            <small>Remote - Manchester, UK</small>
+            <div className="large-avatar">{initials}</div>
+            <h2>{displayName}</h2>
+            <p>{profile.professional_title || "Add your professional title"}</p>
+            <small>{profile.location || "Add your location"}</small>
           </article>
           <article className="panel profile-checklist">
-            <div className="panel-head"><h2>Profile strength</h2><strong>83%</strong></div>
-            <div className="progress-track"><span style={{ width: "83%" }} /></div>
-            {sections.map((section) => <div className="checklist-row" key={section}><Check size={15} /> {section}</div>)}
-            <div className="checklist-row muted-row"><span>+</span> Links <small>add</small></div>
+            <div className="panel-head"><h2>Profile strength</h2><strong>{strength}%</strong></div>
+            <div className="progress-track"><span style={{ width: `${strength}%` }} /></div>
+            {["Basics", "Summary", "Skills", "Experience"].map((section, index) => <div className={index < completed ? "checklist-row" : "checklist-row muted-row"} key={section}><Check size={15} /> {section}</div>)}
           </article>
-          <Button variant="secondary" icon={Target}>Match to a role</Button>
+          <Button variant="secondary" icon={Target} onClick={() => setPage("optimizer")}>Match to a role</Button>
         </aside>
 
         <div className="profile-main">
           <article className="panel profile-form">
             <h2>Basics</h2>
             <div className="form-grid">
-              <label>Full name<input defaultValue="Alex Rivera" /></label>
-              <label>Professional title<input defaultValue="Frontend Engineer" /></label>
-              <label>Email<input defaultValue="alex.rivera@email.com" /></label>
-              <label>Phone<input defaultValue="+44 7700 900123" /></label>
-              <label>Location<input defaultValue="Remote - Manchester, UK" /></label>
-              <label>Portfolio / GitHub<input defaultValue="github.com/alexrivera" /></label>
+              <label>Full name<input value={profile.full_name || ""} onChange={(event) => setProfile({ ...profile, full_name: event.target.value })} /></label>
+              <label>Professional title<input value={profile.professional_title || ""} onChange={(event) => setProfile({ ...profile, professional_title: event.target.value })} /></label>
+              <label>Email<input value={profile.email || user || ""} onChange={(event) => setProfile({ ...profile, email: event.target.value })} /></label>
+              <label>Phone<input value={profile.phone || ""} onChange={(event) => setProfile({ ...profile, phone: event.target.value })} /></label>
+              <label>Location<input value={profile.location || ""} onChange={(event) => setProfile({ ...profile, location: event.target.value })} /></label>
+              <label>Portfolio / GitHub<input value={profile.portfolio || ""} onChange={(event) => setProfile({ ...profile, portfolio: event.target.value })} /></label>
             </div>
+            <div className="profile-form-actions"><Button icon={Check} onClick={saveProfile} disabled={busy}>{busy ? "Saving..." : "Save profile"}</Button></div>
           </article>
 
           <article className="panel profile-form">
             <h2>Professional summary</h2>
-            <textarea defaultValue="Frontend engineer with 4 years building responsive, component-driven web apps in React. Strong on UI craft and product delivery; growing depth in TypeScript, testing, and accessibility." />
+            <textarea value={profile.professional_summary || ""} onChange={(event) => setProfile({ ...profile, professional_summary: event.target.value })} />
             <p className="profile-tip">Tip: lead with years of experience and your strongest stack.</p>
+            <div className="profile-form-actions"><Button icon={Check} onClick={saveProfile} disabled={busy}>Save summary</Button></div>
           </article>
 
           <article className="panel profile-form">
             <h2>Skills</h2>
-            <div className="skills profile-skills">{skills.map((skill) => <span className="skill" key={skill}>{skill} <X size={12} /></span>)}</div>
-            <div className="skill-add-row"><input placeholder="Add a skill..." /><Button variant="secondary" icon={Check}>Add</Button></div>
+            <div className="skills profile-skills">{bundle.skills.map((skill) => <button className="skill removable-skill" key={skill.id} onClick={() => removeSkill(skill.id)} title={`Remove ${skill.skill_name}`}>{skill.skill_name} <X size={12} /></button>)}</div>
+            <div className="skill-add-row"><input value={skillName} onChange={(event) => setSkillName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addSkill(); }} placeholder="Add a skill..." /><Button variant="secondary" icon={Check} onClick={addSkill}>Add</Button></div>
           </article>
 
           <article className="panel profile-form">
-            <div className="panel-head"><h2>Experience</h2><button className="text-button">+ Add role</button></div>
-            <ExperienceItem title="Frontend Engineer" company="Brightwave" date="2022 - Present" bullets={["Built and shipped 3 customer-facing React dashboards used by 20k+ users", "Owned the component library and reduced UI bugs by 35%", "Partnered with design to deliver a full marketing-site rebuild"]} />
-            <ExperienceItem title="Junior Developer" company="Pixel Foundry" date="2020 - 2022" bullets={["Developed responsive landing pages and internal tools in React", "Integrated REST APIs and improved Lighthouse scores across the suite"]} />
-          </article>
-
-          <article className="panel profile-form education-card">
-            <h2>Education</h2>
-            <div className="experience-item"><div><strong>BSc Computer Science</strong><small>University of Manchester</small></div><span className="status-tag">2016 - 2019</span></div>
+            <div className="panel-head"><h2>Experience</h2><button className="text-button" onClick={() => setShowExperienceForm((value) => !value)}>{showExperienceForm ? "Cancel" : "+ Add role"}</button></div>
+            {showExperienceForm && <div className="experience-editor form-grid"><label>Position<input value={experience.position} onChange={(event) => setExperience({ ...experience, position: event.target.value })} /></label><label>Company<input value={experience.company} onChange={(event) => setExperience({ ...experience, company: event.target.value })} /></label><label>Start date<input type="date" value={experience.start_date} onChange={(event) => setExperience({ ...experience, start_date: event.target.value })} /></label><label>End date<input type="date" value={experience.end_date} disabled={experience.current_job} onChange={(event) => setExperience({ ...experience, end_date: event.target.value })} /></label><label className="check-row"><input type="checkbox" checked={experience.current_job} onChange={(event) => setExperience({ ...experience, current_job: event.target.checked, end_date: "" })} /> Current role</label><label className="full-field">Description<textarea value={experience.description} onChange={(event) => setExperience({ ...experience, description: event.target.value })} /></label><Button icon={Check} onClick={addExperience}>Save role</Button></div>}
+            {bundle.experiences.map((item) => <ExperienceItem key={item.id} title={item.position} company={item.company} date={`${item.start_date || "Start"} - ${item.current_job ? "Present" : item.end_date || "End"}`} bullets={(item.description || "").split("\n").filter(Boolean)} onDelete={() => removeExperience(item.id)} />)}
+            {!bundle.experiences.length && !showExperienceForm && <p className="profile-tip">Add your work history so TrueFit can tailor CVs and calculate stronger matches.</p>}
           </article>
         </div>
-      </section>
+      </section>}
     </div>
   );
 }
 
-function ExperienceItem({ title, company, date, bullets }) {
+function ExperienceItem({ title, company, date, bullets, onDelete }) {
   return (
     <div className="experience-item">
       <div>
@@ -1273,7 +1345,7 @@ function ExperienceItem({ title, company, date, bullets }) {
         <small>{company}</small>
         <ul>{bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
       </div>
-      <span className="status-tag">{date}</span>
+      <div className="experience-actions"><span className="status-tag">{date}</span>{onDelete && <button className="icon-button" onClick={onDelete} title="Delete experience"><X size={15} /></button>}</div>
     </div>
   );
 }
@@ -1360,7 +1432,7 @@ export default function App() {
       {!apiOnline && <div className="offline-banner">FastAPI backend is offline. Start it on port 8000 to use live actions.</div>}
       {page === "candidate" && <CandidateDashboard setPage={setPage} user={user} />}
       {page === "optimizer" && <Optimizer />}
-      {page === "profile" && <Profile />}
+      {page === "profile" && <Profile user={user} setPage={setPage} />}
       {page === "applications" && <ApplicationsPage />}
       {page === "recruiter" && <RecruiterWorkspace onOpenReport={openMatchReport} screening={screeningState} />}
       {page === "feedback" && <CandidateFeedbackPage />}
