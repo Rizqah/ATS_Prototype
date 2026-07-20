@@ -10,3 +10,6 @@ python-docx
 pytz
 pyotp
 sendgrid
+fastapi
+uvicorn[standard]
+python-multipart

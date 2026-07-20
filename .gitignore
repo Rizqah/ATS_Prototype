@@ -49,3 +49,7 @@ Thumbs.db
 
 # Streamlit cache (but NOT .streamlit/ folder)
 .streamlit/cache/
+
+# Frontend dependencies and builds
+frontend/node_modules/
+frontend/dist/

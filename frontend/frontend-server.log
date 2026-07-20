@@ -1,0 +1,14 @@
+
+> truefit-frontend@0.1.0 dev
+> vite
+
+Port 3000 is in use, trying another one...
+
+  VITE v6.4.3  ready in 1648 16:39:58 [vite] (client) hmr update /src/App.jsx
+16:39:59 [vite] (client) hmr update /src/App.jsx
+16:40:05 [vite] (client) hmr update /src/styles.css
+16:58:18 [vite] (client) hmr update /src/styles.css
+16:58:18 [vite] (client) hmr update /src/styles.css
+17:01:31 [vite] (client) hmr update /src/App.jsx
+17:01:31 [vite] (client) hmr update /src/App.jsx
+17:01:36 [vite] (client) hmr update /src/styles.css

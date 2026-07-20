@@ -2,10 +2,10 @@ import openai
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import io
-import streamlit as st
 from pypdf import PdfReader
 import os
 import re
+import warnings
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
 
@@ -15,6 +15,40 @@ from dotenv import load_dotenv
 # Load variables from .env file
 load_dotenv()
 
+
+class ATSConfigurationError(RuntimeError):
+    """Raised when ATS services are missing required configuration."""
+
+
+_client = None
+
+
+class _StreamlitCompatibility:
+    """Minimal fallback for legacy setup error paths outside Streamlit."""
+
+    def error(self, message):
+        warnings.warn(str(message), RuntimeWarning, stacklevel=2)
+
+    def warning(self, message):
+        warnings.warn(str(message), RuntimeWarning, stacklevel=2)
+
+    def stop(self):
+        raise ATSConfigurationError("ATS service initialization stopped")
+
+
+st = _StreamlitCompatibility()
+
+
+def _get_streamlit_secret(name: str) -> Optional[str]:
+    """Read Streamlit secrets only when Streamlit is installed and configured."""
+    try:
+        import streamlit as st
+
+        return st.secrets.get(name)
+    except Exception:
+        return None
+
+
 def setup_openai_client():
     """Safely setup OpenAI client with proper error handling."""
     try:
@@ -23,10 +57,7 @@ def setup_openai_client():
         
         # Fall back to Streamlit secrets (for production/cloud deployment)
         if not api_key:
-            try:
-                api_key = st.secrets.get("OPENAI_API_KEY")
-            except Exception:
-                pass
+            api_key = _get_streamlit_secret("OPENAI_API_KEY")
         
         # If still no key, show error
         if not api_key:
@@ -43,7 +74,22 @@ def setup_openai_client():
         st.error(f"❌ Failed to initialize OpenAI client: {str(e)}")
         st.stop()
 
-client = setup_openai_client()
+def get_openai_client():
+    """Return a lazily initialized OpenAI client."""
+    global _client
+    if _client is None:
+        _client = setup_openai_client()
+    return _client
+
+
+class _OpenAIClientProxy:
+    """Proxy existing client.* calls to a lazily initialized OpenAI client."""
+
+    def __getattr__(self, name):
+        return getattr(get_openai_client(), name)
+
+
+client = _OpenAIClientProxy()
 
 # ======================================================
 # 2. RESUME VALIDATION FUNCTION
