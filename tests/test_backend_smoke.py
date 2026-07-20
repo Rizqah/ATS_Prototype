@@ -40,6 +40,8 @@ class BackendSmokeTests(unittest.TestCase):
         self.assertIn("/api/matching/batch", paths)
         self.assertIn("/api/matching/invite", paths)
         self.assertIn("/api/cv/pdf", paths)
+        self.assertIn("/api/profile/{user_email}/experiences", paths)
+        self.assertIn("/api/profile/{user_email}/skills", paths)
 
 
 if __name__ == "__main__":

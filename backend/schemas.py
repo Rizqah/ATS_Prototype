@@ -18,6 +18,24 @@ class ProfileUpdate(BaseModel):
     data: Dict[str, Any]
 
 
+class ExperienceCreate(BaseModel):
+    company: str = Field(min_length=1)
+    position: str = Field(min_length=1)
+    start_date: str = ""
+    end_date: str = ""
+    current_job: bool = False
+    description: str = ""
+
+
+class ExperienceUpdate(BaseModel):
+    data: Dict[str, Any]
+
+
+class SkillCreate(BaseModel):
+    skill_name: str = Field(min_length=1)
+    proficiency: str = "Intermediate"
+
+
 class CandidateResume(BaseModel):
     name: str
     resume: str

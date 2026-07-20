@@ -46,6 +46,13 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   profile: (email) => request(`/api/profile/${encodeURIComponent(email)}`),
+  createProfile: (email, fullName = "") => request(`/api/profile/${encodeURIComponent(email)}?full_name=${encodeURIComponent(fullName)}`, { method: "POST" }),
+  updateProfile: (email, data) => request(`/api/profile/${encodeURIComponent(email)}`, { method: "PUT", body: JSON.stringify({ data }) }),
+  addExperience: (email, data) => request(`/api/profile/${encodeURIComponent(email)}/experiences`, { method: "POST", body: JSON.stringify(data) }),
+  updateExperience: (email, id, data) => request(`/api/profile/${encodeURIComponent(email)}/experiences/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify({ data }) }),
+  deleteExperience: (email, id) => request(`/api/profile/${encodeURIComponent(email)}/experiences/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  addSkill: (email, data) => request(`/api/profile/${encodeURIComponent(email)}/skills`, { method: "POST", body: JSON.stringify(data) }),
+  deleteSkill: (email, id) => request(`/api/profile/${encodeURIComponent(email)}/skills/${encodeURIComponent(id)}`, { method: "DELETE" }),
   renderCv: (payload) =>
     request("/api/cv/render", {
       method: "POST",
