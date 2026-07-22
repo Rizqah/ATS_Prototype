@@ -5,9 +5,9 @@ from typing import Dict, Optional
 from careerhub_db import get_user, sign_in, sign_up, update_user
 
 
-def register_user(email: str, password: str) -> Dict:
+def register_user(email: str, password: str, role: str = "candidate", full_name: str = "", job_title: str = "") -> Dict:
     """Create a new user account."""
-    return sign_up(email, password)
+    return sign_up(email, password, role, full_name, job_title)
 
 
 def authenticate_user(email: str, password: str, otp_code: Optional[str] = None) -> Dict:

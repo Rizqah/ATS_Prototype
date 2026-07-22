@@ -9,6 +9,9 @@ class Credentials(BaseModel):
     email: str
     password: str = Field(min_length=1)
     otp_code: Optional[str] = None
+    role: Optional[str] = None
+    full_name: Optional[str] = None
+    job_title: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -69,6 +72,8 @@ class FeedbackRequest(BaseModel):
     job_description: str = Field(min_length=1)
     candidate_resume: str = Field(min_length=1)
     candidate_name: Optional[str] = None
+    recruiter_name: Optional[str] = None
+    recruiter_job_title: Optional[str] = None
 
 
 class CVRequest(BaseModel):

@@ -53,10 +53,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email, password, otp_code: otpCode }),
     }),
-  signup: (email, password) =>
+  signup: (email, password, role = "candidate", fullName = "", jobTitle = "") =>
     request("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role, full_name: fullName, job_title: jobTitle }),
     }),
   changePassword: (email, currentPassword, newPassword) => request("/api/security/password/change", { method: "POST", body: JSON.stringify({ email, current_password: currentPassword, new_password: newPassword }) }),
   requestPasswordReset: (email) => request("/api/security/password/reset/request", { method: "POST", body: JSON.stringify({ email }) }),

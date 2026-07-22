@@ -54,7 +54,7 @@ def hash_password(password: str) -> str:
     """Hash password for storage."""
     return hashlib.sha256(password.encode()).hexdigest()
 
-def sign_up(email: str, password: str) -> dict:
+def sign_up(email: str, password: str, role: str = "candidate", full_name: str = "", job_title: str = "") -> dict:
     """Sign up a new user."""
     try:
         users = load_json(USERS_FILE)
@@ -65,6 +65,9 @@ def sign_up(email: str, password: str) -> dict:
         users[email] = {
             "email": email,
             "password_hash": hash_password(password),
+            "role": role,
+            "full_name": full_name,
+            "job_title": job_title,
             "created_at": datetime.now().isoformat(),
         }
         

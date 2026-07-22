@@ -79,6 +79,23 @@ class BackendSmokeTests(unittest.TestCase):
         self.assertNotIn("react", analysis["requirements"])
         self.assertTrue(all(item["requirement"].lower() in analysis["missing_requirements"] for item in analysis["suggestions"]))
 
+    def test_feedback_signature_uses_recruiter_profile(self):
+        with patch("backend.routes.matching.generate_candidate_feedback", return_value="Regards,\n[Your Name]\n[Your Job Title]"):
+            response = self.client.post(
+                "/api/matching/feedback",
+                json={
+                    "job_description": "HR Advisor",
+                    "candidate_resume": "HR experience",
+                    "candidate_name": "Candidate",
+                    "recruiter_name": "Alex Morgan",
+                    "recruiter_job_title": "Talent Lead",
+                },
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Alex Morgan", response.json()["feedback"])
+        self.assertIn("Talent Lead", response.json()["feedback"])
+        self.assertNotIn("[Your", response.json()["feedback"])
+
     def test_email_delivery_route_uses_provider_result(self):
         with patch("backend.routes.communications.send_recruiter_email", return_value={"success": True, "status": "delivered", "provider_status": 202, "message_id": "test-message"}):
             response = self.client.post("/api/communications/email/send", json={"recruiter_email": "recruiter@example.com", "to_email": "candidate@example.com", "subject": "Application update", "body": "Thank you"})

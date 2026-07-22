@@ -249,6 +249,8 @@ function Auth({ role, setRole, onAuthenticated, setPage }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpRequired, setOtpRequired] = useState(false);
   const [error, setError] = useState("");
@@ -259,7 +261,7 @@ function Auth({ role, setRole, onAuthenticated, setPage }) {
     setError("");
     setBusy(true);
     try {
-      const result = mode === "login" ? await api.login(email, password, otpRequired ? otpCode : null) : await api.signup(email, password);
+      const result = mode === "login" ? await api.login(email, password, otpRequired ? otpCode : null) : await api.signup(email, password, role, fullName, jobTitle);
       if (result.requires_2fa) { setOtpRequired(true); return; }
       onAuthenticated(result.user || email);
     } catch (err) {
@@ -283,6 +285,7 @@ function Auth({ role, setRole, onAuthenticated, setPage }) {
           <button type="button" className={role === "candidate" ? "active" : ""} onClick={() => setRole("candidate")}><CircleUserRound size={16} /> Candidate</button>
         </div>
         <div><span className="eyebrow">{otpRequired ? "Two-factor authentication" : mode === "login" ? "Welcome back" : "Create account"}</span><h2>{otpRequired ? "Verify your sign-in" : mode === "login" ? "Sign in to Fydara" : "Start using Fydara"}</h2></div>
+        {mode === "signup" && role === "recruiter" && <><label>Full name<input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Your full name" required /></label><label>Job title<input value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="e.g. Talent Acquisition Lead" required /></label></>}
         <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required /></label>
         {!otpRequired && <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" required /></label>}
         {otpRequired && <label>Authenticator or backup code<input value={otpCode} onChange={(event) => setOtpCode(event.target.value.replace(/\s/g, "").slice(0, 12))} autoComplete="one-time-code" required /></label>}
@@ -567,6 +570,7 @@ function RecruiterWorkspace({ onOpenReport, screening, recruiterEmail }) {
     threshold,
     setThreshold,
     workspaceStatus,
+    recruiterProfile,
     communicationHistory,
     setCommunicationHistory,
   } = screening;
@@ -695,6 +699,8 @@ function RecruiterWorkspace({ onOpenReport, screening, recruiterEmail }) {
           job_description: jobDescription,
           candidate_resume: candidate.resume || `${candidate.role} ${(candidate.skills || []).join(" ")}`,
           candidate_name: candidate.name,
+          recruiter_name: recruiterProfile.full_name || "",
+          recruiter_job_title: recruiterProfile.job_title || "",
         };
 
         if ((candidate.score || 0) < threshold) {
@@ -1713,6 +1719,7 @@ export default function App() {
     threshold,
     setThreshold,
     workspaceStatus,
+    recruiterProfile,
     communicationHistory,
     setCommunicationHistory,
   };

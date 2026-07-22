@@ -62,12 +62,15 @@ def match_profile(request: ProfileMatchRequest):
 @router.post("/feedback")
 def create_feedback(request: FeedbackRequest):
     try:
+        feedback = generate_candidate_feedback(
+            request.job_description,
+            request.candidate_resume,
+            request.candidate_name,
+        )
+        feedback = feedback.replace("[Your Name]", request.recruiter_name or "Fydara Hiring Team")
+        feedback = feedback.replace("[Your Job Title]", request.recruiter_job_title or "Recruitment Team")
         return {
-            "feedback": generate_candidate_feedback(
-                request.job_description,
-                request.candidate_resume,
-                request.candidate_name,
-            )
+            "feedback": feedback
         }
     except Exception as error:
         raise _service_error(error) from error
@@ -87,7 +90,8 @@ We would like to invite you to the next stage of the process. In the interview, 
 Please reply with your availability for a first conversation this week.
 
 Best regards,
-Fydara Hiring Team"""
+{request.recruiter_name or 'Fydara Hiring Team'}
+{request.recruiter_job_title or 'Recruitment Team'}"""
     return {"subject": subject, "invite": invite}
 
 

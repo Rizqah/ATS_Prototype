@@ -10,13 +10,28 @@ from services.auth_service import (
     register_user,
     update_user_record,
 )
+from services.recruiter_service import save_workspace
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/signup", status_code=201)
 def signup(credentials: Credentials):
-    return require_success(register_user(credentials.email, credentials.password))
+    result = register_user(
+        credentials.email,
+        credentials.password,
+        credentials.role or "candidate",
+        credentials.full_name or "",
+        credentials.job_title or "",
+    )
+    if result.get("success") and credentials.role == "recruiter":
+        save_workspace(credentials.email, {
+            "recruiter_profile": {
+                "full_name": credentials.full_name or "",
+                "job_title": credentials.job_title or "",
+            }
+        })
+    return require_success(result)
 
 
 @router.post("/login")
