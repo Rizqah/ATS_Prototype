@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CandidatesPage, ReportsPage } from "./App";
+import { CandidatesPage, ReportsPage, TopNav } from "./App";
 
 const workspace = {
   job_title: "Frontend Engineer",
@@ -96,5 +96,25 @@ describe("talent pool", () => {
     await user.type(screen.getByPlaceholderText("Search name, role, company..."), "Nobody");
     expect(exportButton).toBeDisabled();
     expect(within(screen.getByText("No candidates found").parentElement).getByText(/Adjust the search/)).toBeInTheDocument();
+  });
+});
+
+describe("mobile navigation", () => {
+  it("makes every recruiter page and account action reachable from the menu", async () => {
+    const user = userEvent.setup();
+    const setPage = vi.fn();
+    render(<TopNav page="recruiter" role="recruiter" setPage={setPage} onLogout={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Open navigation" }));
+
+    expect(screen.getByRole("button", { name: /Workspace/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Profile/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Candidates/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Reports/ })).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("button", { name: "Security" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Profile/ }));
+    expect(setPage).toHaveBeenCalledWith("recruiter-profile");
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
   });
 });

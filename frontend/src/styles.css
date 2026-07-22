@@ -84,10 +84,12 @@ input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3p
 
 .top-nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.88); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); box-shadow: 0 1px 12px rgba(15,23,42,.04); }
 .nav-inner { height: 66px; gap: 22px; }
+.nav-inner { position: relative; }
 .nav-links { display: flex; gap: 4px; }
 .nav-link { color: var(--muted); border: 0; background: transparent; border-radius: 7px; padding: 8px 11px; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; }
 .nav-link.active, .nav-link:hover { background: var(--surface-2); color: var(--text); }
 .nav-spacer, .grow { flex: 1; }
+.mobile-menu-button, .mobile-nav-actions { display: none; }
 .api-status { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; font-weight: 700; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--excellent); box-shadow: 0 0 10px var(--excellent); }
 .offline-banner { width: min(1200px, calc(100% - 40px)); margin: 12px auto 0; }
@@ -461,7 +463,13 @@ input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3p
   .auth-page { padding: 40px 0; gap: 40px; }
   .auth-message .logo { margin-bottom: 50px; }
   .metric-grid, .capabilities, .candidate-actions, .metric-options { grid-template-columns: 1fr 1fr; }
-  .nav-links, .api-status { display: none; }
+  .api-status, .desktop-nav-action { display: none; }
+  .mobile-menu-button { display: grid; flex: none; }
+  .nav-inner { gap: 10px; }
+  .nav-links { display: none; position: absolute; top: 66px; left: 0; right: 0; padding: 12px; border: 1px solid var(--border); border-top: 0; border-radius: 0 0 12px 12px; background: rgba(255,255,255,.98); box-shadow: 0 18px 35px rgba(15,23,42,.12); }
+  .nav-links.mobile-open { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .nav-links .nav-link { width: 100%; min-height: 44px; justify-content: flex-start; }
+  .mobile-nav-actions { display: contents; }
   .feedback-stats { flex-wrap: wrap; }
   .report-hero { align-items: stretch; flex-direction: column; }
   .report-hero-actions { justify-content: flex-start; }
@@ -471,8 +479,21 @@ input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3p
   .skill-editor-row, .achievement-add-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .public-actions .button-ghost, .heading-actions .button-secondary { display: none; }
+  .public-nav { min-height: 72px; height: auto; padding: 14px 0; flex-wrap: wrap; gap: 12px; }
+  .public-nav .logo { width: 140px; height: 32px; }
+  .public-nav .fydara-logo { width: 140px; height: 32px; background-size: 203px 203px; background-position: -43px -81px; }
+  .public-actions { width: 100%; margin-left: 0; }
+  .public-actions .button { flex: 1; padding-inline: 10px; }
   .hero-actions, .page-heading { align-items: stretch; flex-direction: column; }
+  .page-shell { width: min(100% - 24px, 1200px); padding-top: 28px; }
+  .page-heading { gap: 16px; }
+  .heading-actions { width: 100%; margin-left: 0; flex-wrap: wrap; }
+  .heading-actions .button { flex: 1 1 145px; }
+  .panel-head { align-items: flex-start; flex-wrap: wrap; }
+  .panel-head .heading-actions { width: auto; }
+  .nav-links.mobile-open { grid-template-columns: 1fr; max-height: calc(100vh - 78px); overflow-y: auto; }
+  .nav-inner .logo { width: 140px; height: 32px; }
+  .nav-inner .fydara-logo { width: 140px; height: 32px; background-size: 203px 203px; background-position: -43px -81px; }
   .metric-grid, .capabilities, .candidate-actions, .form-grid, .metric-options { grid-template-columns: 1fr; }
   .capability { border-right: 0; border-bottom: 1px solid var(--border); }
   .profile-form, .panel, .auth-form { padding: 17px; }
@@ -483,6 +504,8 @@ input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3p
   .email-meta { grid-template-columns: 1fr; }
   .match-summary, .score-bar { grid-template-columns: 1fr; }
   .report-bottom-actions { flex-direction: column; }
+  .report-bottom-actions .button, .composer-actions .button, .cv-download-actions .button, .profile-form-actions .button { width: 100%; }
+  .report-hero-actions, .composer-actions, .cv-download-actions, .profile-form-actions { width: 100%; align-items: stretch; flex-direction: column; }
   .jobs-grid, .role-metrics { grid-template-columns: 1fr; }
   .role-footer { align-items: stretch; flex-direction: column; }
   .profile-strength-card, .next-move-card { grid-template-columns: 1fr; }

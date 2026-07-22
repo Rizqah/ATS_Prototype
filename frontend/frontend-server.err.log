@@ -1,0 +1,10 @@
+[2m19:00:06[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [33mwarning: [33mDuplicate key "recruiterProfile" in object literal[33m
+1742|      communicationHistory,
+1743|      setCommunicationHistory,
+1744|      recruiterProfile
+   |      ^
+1745|    };
+1746|    const recruiterWorkspaceView = { recruiter_email: user, job_description: jobDescription, job_title: getJobTitle(jobDescription), candidates, candidate_messages: candidateMessages, threshold, has_reviewed: hasReviewed };
+[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Justina Omohefe/OneDrive/Documents/ATS_Prototype/frontend/src/App.jsx[39m

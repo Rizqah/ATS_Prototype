@@ -113,7 +113,8 @@ function downloadTextPdf(lines, filename) {
   downloadFile(pdf, filename, "application/pdf");
 }
 
-function TopNav({ page, setPage, role, onLogout }) {
+export function TopNav({ page, setPage, role, onLogout }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const candidateLinks = [
     ["candidate", "Dashboard", LayoutDashboard],
     ["optimizer", "CV Optimizer", Target],
@@ -134,17 +135,22 @@ function TopNav({ page, setPage, role, onLogout }) {
     <header className="top-nav">
       <div className="nav-inner">
         <Logo onClick={() => setPage(role === "recruiter" ? "recruiter" : "candidate")} />
-        <nav className="nav-links">
+        <nav className={mobileOpen ? "nav-links mobile-open" : "nav-links"} aria-label="Primary navigation">
           {links.map(([target, label, Icon]) => (
-            <button key={label} className={page === target ? "nav-link active" : "nav-link"} onClick={() => setPage(target)}>
+            <button key={label} className={page === target ? "nav-link active" : "nav-link"} onClick={() => { setPage(target); setMobileOpen(false); }}>
               <Icon size={15} /> {label}
             </button>
           ))}
+          <div className="mobile-nav-actions">
+            <button className="nav-link" onClick={() => { setPage("security"); setMobileOpen(false); }}><ShieldCheck size={15} /> Security</button>
+            <button className="nav-link" onClick={onLogout}><LogOut size={15} /> Log out</button>
+          </div>
         </nav>
         <div className="nav-spacer" />
         <span className="api-status"><span className="status-dot" /> API connected</span>
-        <button className="icon-button" onClick={() => setPage("security")} title="Security settings"><ShieldCheck size={18} /></button>
-        <button className="icon-button" onClick={onLogout} title="Log out"><LogOut size={18} /></button>
+        <button className="icon-button desktop-nav-action" onClick={() => setPage("security")} title="Security settings"><ShieldCheck size={18} /></button>
+        <button className="icon-button desktop-nav-action" onClick={onLogout} title="Log out"><LogOut size={18} /></button>
+        <button className="icon-button mobile-menu-button" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen}>{mobileOpen ? <X size={19} /> : <Menu size={19} />}</button>
       </div>
     </header>
   );
