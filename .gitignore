@@ -1,55 +1,34 @@
-TrueFit/
-├── app.py
-├── ats_engine.py
-├── careerhub_db.py
-├── cv_generator.py
-├── requirements.txt
-├── .env
-├── .gitignore
-├── .streamlit/
-│   └── config.toml
-├── careerhub_data/
-│   └── ...
-└── pages/
-    ├── 01_applicant.py
-    ├── 02_recruiter.py
-    ├── 03_careerhub_auth.py
-    ├── 04_careerhub_dashboard.py
-    ├── 05_careerhub_profile.py
-    ├── 06_careerhub_cv_generator.py
-    └── 07_careerhub_tracker.py
-├──     08_careerhub_cv_matcher.py       (NEW)
-├──     09_careerhub_cv_optimizer.py     (NEW)
-
-
-
-
-
 # Python bytecode
 __pycache__/
-*.pyc
+*.py[cod]
 
-# Environment variables
+# Environment and secrets
 .env
+.env.*
+!.env.example
 
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints/
-
-# Virtual environment
+# Virtual environments
 .venv/
 venv/
 
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Streamlit cache (but NOT .streamlit/ folder)
-.streamlit/cache/
+# Test and tool caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
 # Frontend dependencies and builds
 frontend/node_modules/
 frontend/dist/
+
+# IDE and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local runtime output
+*.log
+careerhub_data/recruiter_workspaces.json

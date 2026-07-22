@@ -1,8 +1,7 @@
 """UI-neutral ATS service functions.
 
-This module is the first migration boundary between the current Streamlit app
-and a future FastAPI backend. It keeps the existing ATS behavior available
-without importing Streamlit pages.
+Framework-neutral access to the existing matching and document logic. It does
+not depend on a frontend framework.
 """
 
 from typing import Dict, List, Optional
@@ -20,6 +19,7 @@ from ats_engine import (
     rank_candidates,
     validate_resume_document,
 )
+from services.matching_analysis import analyse_role_fit
 
 
 def extract_resume_text(uploaded_file) -> str:
@@ -29,7 +29,14 @@ def extract_resume_text(uploaded_file) -> str:
 
 def rank_resumes(job_description: str, candidates_data: List[Dict[str, str]]) -> List[Dict]:
     """Rank candidate resumes against a job description."""
-    return rank_candidates(job_description, candidates_data)
+    ranked = rank_candidates(job_description, candidates_data)
+    for candidate in ranked:
+        analysis = analyse_role_fit(job_description, candidate.get("resume", ""))
+        semantic_score = max(0.0, min(1.0, float(candidate.get("score", 0))))
+        candidate.update(analysis)
+        candidate["semantic_score"] = semantic_score
+        candidate["score"] = round((semantic_score * 0.35) + ((analysis["evidence_score"] / 100) * 0.65), 4)
+    return sorted(ranked, key=lambda item: item["score"], reverse=True)
 
 
 def generate_candidate_feedback(
@@ -61,5 +68,6 @@ __all__ = [
     "optimize_cv_for_jd",
     "rank_candidates",
     "rank_resumes",
+    "analyse_role_fit",
     "validate_resume_document",
 ]

@@ -1,7 +1,7 @@
 # TrueFit FastAPI Backend
 
-This backend runs beside the existing Streamlit prototype and exposes the first
-UI-neutral TrueFit services over HTTP.
+This is the active TrueFit application backend. It exposes the UI-neutral
+services used by the React frontend over HTTP.
 
 ## Run Locally
 
@@ -41,10 +41,10 @@ Open:
 - `POST /api/cv/docx`
 - `POST /api/cv/optimize`
 
-## Prototype Boundaries
+## Current Boundaries
 
 - Existing JSON files in `careerhub_data/` remain the data store.
 - Existing password hashing/auth behavior is preserved for migration
   compatibility; this is not production-grade token authentication.
 - OpenAI-backed endpoints require `OPENAI_API_KEY`.
-- Streamlit pages are unchanged and can continue running during migration.
+- The retired Streamlit UI is kept only in Git history; React is the supported UI.

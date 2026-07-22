@@ -43,9 +43,8 @@ function getJobTitle(jobDescription) {
 
 function Logo({ onClick }) {
   return (
-    <button className="logo" onClick={onClick} aria-label="TrueFit home">
-      <span className="logo-mark"><Target size={17} /></span>
-      <span>TrueFit</span>
+    <button className="logo" onClick={onClick} aria-label="Fydara home">
+      <span className="fydara-logo" aria-hidden="true" />
     </button>
   );
 }
@@ -123,6 +122,7 @@ function TopNav({ page, setPage, role, onLogout }) {
   ];
   const recruiterLinks = [
     ["recruiter", "Workspace", Users],
+    ["recruiter-profile", "Profile", CircleUserRound],
     ["feedback", "Feedback", Mail],
     ["jobs", "Jobs", BriefcaseBusiness],
     ["candidates", "Candidates", CircleUserRound],
@@ -143,9 +143,51 @@ function TopNav({ page, setPage, role, onLogout }) {
         </nav>
         <div className="nav-spacer" />
         <span className="api-status"><span className="status-dot" /> API connected</span>
+        <button className="icon-button" onClick={() => setPage("security")} title="Security settings"><ShieldCheck size={18} /></button>
         <button className="icon-button" onClick={onLogout} title="Log out"><LogOut size={18} /></button>
       </div>
     </header>
+  );
+}
+
+function RecruiterProfile({ user, profile, onChange, workspaceStatus }) {
+  const [saved, setSaved] = useState("");
+  const update = (field, value) => {
+    onChange({ ...profile, [field]: value });
+    setSaved("");
+  };
+  const confirmSave = (event) => {
+    event.preventDefault();
+    setSaved("Profile queued for secure workspace save.");
+  };
+  const initials = (profile.full_name || user || "Recruiter").split(/[\s@]+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+
+  return (
+    <div className="page-shell">
+      <section className="page-heading"><div><span className="eyebrow">Recruiter account</span><h1>Your profile</h1><p>Keep your identity and company details current across hiring communications and workspaces.</p></div><span className="workspace-save-status">{workspaceStatus}</span></section>
+      {saved && <div className="success-message profile-message">{saved}</div>}
+      <section className="profile-layout recruiter-profile-layout">
+        <aside className="panel profile-summary">
+          <span className="large-avatar">{initials}</span>
+          <div><h2>{profile.full_name || "Recruiter name"}</h2><p>{profile.job_title || "Recruiter"}</p></div>
+          <span className="status-tag">{profile.company || "Company not added"}</span>
+          <small>{user}</small>
+        </aside>
+        <form className="panel profile-form" onSubmit={confirmSave}>
+          <div className="panel-head"><div><h2>Personal and company details</h2><p>These details are saved with your recruiter account.</p></div><CircleUserRound size={22} /></div>
+          <div className="form-grid">
+            <label>Full name<input value={profile.full_name || ""} onChange={(event) => update("full_name", event.target.value)} placeholder="Your full name" /></label>
+            <label>Job title<input value={profile.job_title || ""} onChange={(event) => update("job_title", event.target.value)} placeholder="e.g. Talent Acquisition Lead" /></label>
+            <label>Company<input value={profile.company || ""} onChange={(event) => update("company", event.target.value)} placeholder="Company name" /></label>
+            <label>Company website<input type="url" value={profile.company_website || ""} onChange={(event) => update("company_website", event.target.value)} placeholder="https://company.com" /></label>
+            <label>Location<input value={profile.location || ""} onChange={(event) => update("location", event.target.value)} placeholder="City or remote" /></label>
+            <label>Hiring team size<input value={profile.team_size || ""} onChange={(event) => update("team_size", event.target.value)} placeholder="e.g. 5" /></label>
+            <label className="full">About you<textarea value={profile.bio || ""} onChange={(event) => update("bio", event.target.value)} placeholder="Describe your role and the teams you hire for." /></label>
+          </div>
+          <div className="profile-form-actions"><Button type="submit" icon={Check}>Save profile</Button></div>
+        </form>
+      </section>
+    </div>
   );
 }
 
@@ -167,7 +209,7 @@ function Landing({ setPage, setRole, onStartScreening }) {
         <div className="hero-copy">
           <span className="eyebrow">Explainable AI hiring</span>
           <h1>Find the right fit.<br /><span>Show people why.</span></h1>
-          <p>TrueFit ranks resumes against the real requirements of a role and turns every score into clear, useful next steps.</p>
+          <p>Fydara ranks resumes against the real requirements of a role and turns every score into clear, useful next steps.</p>
           <div className="hero-actions">
             <Button icon={Users} onClick={onStartScreening}>Start screening</Button>
             <Button variant="secondary" icon={CircleUserRound} onClick={() => openAuth("candidate")}>Optimize my CV</Button>
@@ -203,10 +245,12 @@ function Landing({ setPage, setRole, onStartScreening }) {
   );
 }
 
-function Auth({ role, setRole, onAuthenticated }) {
+function Auth({ role, setRole, onAuthenticated, setPage }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpRequired, setOtpRequired] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -215,7 +259,8 @@ function Auth({ role, setRole, onAuthenticated }) {
     setError("");
     setBusy(true);
     try {
-      const result = mode === "login" ? await api.login(email, password) : await api.signup(email, password);
+      const result = mode === "login" ? await api.login(email, password, otpRequired ? otpCode : null) : await api.signup(email, password);
+      if (result.requires_2fa) { setOtpRequired(true); return; }
       onAuthenticated(result.user || email);
     } catch (err) {
       setError(err.message);
@@ -237,27 +282,111 @@ function Auth({ role, setRole, onAuthenticated }) {
           <button type="button" className={role === "recruiter" ? "active" : ""} onClick={() => setRole("recruiter")}><Users size={16} /> Recruiter</button>
           <button type="button" className={role === "candidate" ? "active" : ""} onClick={() => setRole("candidate")}><CircleUserRound size={16} /> Candidate</button>
         </div>
-        <div><span className="eyebrow">{mode === "login" ? "Welcome back" : "Create account"}</span><h2>{mode === "login" ? "Sign in to TrueFit" : "Start using TrueFit"}</h2></div>
+        <div><span className="eyebrow">{otpRequired ? "Two-factor authentication" : mode === "login" ? "Welcome back" : "Create account"}</span><h2>{otpRequired ? "Verify your sign-in" : mode === "login" ? "Sign in to Fydara" : "Start using Fydara"}</h2></div>
         <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required /></label>
-        <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" required /></label>
+        {!otpRequired && <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" required /></label>}
+        {otpRequired && <label>Authenticator or backup code<input value={otpCode} onChange={(event) => setOtpCode(event.target.value.replace(/\s/g, "").slice(0, 12))} autoComplete="one-time-code" required /></label>}
         {error && <div className="form-error">{error}</div>}
-        <Button type="submit" disabled={busy}>{busy ? "Working..." : mode === "login" ? "Sign in" : "Create account"}</Button>
-        <button className="text-button" type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")}>
+        <Button type="submit" disabled={busy}>{busy ? "Working..." : otpRequired ? "Verify code" : mode === "login" ? "Sign in" : "Create account"}</Button>
+        {otpRequired && <button className="text-button" type="button" onClick={() => { setOtpRequired(false); setOtpCode(""); }}>Use another account</button>}
+        {!otpRequired && <button className="text-button" type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")}>
           {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+        </button>}
+        {mode === "login" && !otpRequired && <button className="text-button" type="button" onClick={() => setPage("password-reset")}>Forgot password?</button>}
       </form>
     </main>
   );
 }
 
+function PasswordResetPage({ setPage }) {
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [requested, setRequested] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const requestReset = async (event) => {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      const response = await api.requestPasswordReset(email);
+      setRequested(true);
+      setMessage(response.development_token ? `${response.message} Development code: ${response.development_token}` : response.message);
+    } catch (requestError) { setError(requestError.message); }
+    finally { setBusy(false); }
+  };
+  const confirmReset = async (event) => {
+    event.preventDefault(); setError("");
+    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
+    setBusy(true);
+    try { const response = await api.confirmPasswordReset(email, token, password); setMessage(response.message); setTimeout(() => setPage("auth"), 1200); }
+    catch (requestError) { setError(requestError.message); }
+    finally { setBusy(false); }
+  };
+  return <main className="auth-page"><div className="auth-message"><Logo onClick={() => setPage("landing")} /><span className="eyebrow">Account recovery</span><h1>Reset your password securely.</h1><p>Reset codes expire after one hour and can only be used once.</p></div><form className="auth-form" onSubmit={requested ? confirmReset : requestReset}><div><span className="eyebrow">Password reset</span><h2>{requested ? "Enter your reset code" : "Request a reset code"}</h2></div><label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={requested} required /></label>{requested && <><label>Six-digit code<input value={token} onChange={(event) => setToken(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" required /></label><label>New password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label><label>Confirm password<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></label></>}{message && <div className="success-message">{message}</div>}{error && <div className="form-error">{error}</div>}<Button type="submit" disabled={busy}>{busy ? "Working..." : requested ? "Reset password" : "Request code"}</Button>{requested && <button className="text-button" type="button" onClick={() => { setRequested(false); setMessage(""); }}>Request another code</button>}<button className="text-button" type="button" onClick={() => setPage("auth")}>Back to sign in</button></form></main>;
+}
+
+function SecurityPage({ user, setPage, onLogout }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [setupData, setSetupData] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [disablePassword, setDisablePassword] = useState("");
+  const [backupCodes, setBackupCodes] = useState([]);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  useEffect(() => { api.twoFactorStatus(user).then((result) => setTwoFactorEnabled(result.enabled)).catch(() => {}); }, [user]);
+  const submit = async (event) => {
+    event.preventDefault(); setError(""); setMessage("");
+    if (newPassword !== confirmPassword) { setError("Passwords do not match"); return; }
+    setBusy(true);
+    try { const response = await api.changePassword(user, currentPassword, newPassword); setMessage(response.message); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }
+    catch (requestError) { setError(requestError.message); }
+    finally { setBusy(false); }
+  };
+  const beginTwoFactor = async () => { setError(""); try { setSetupData(await api.setupTwoFactor(user)); } catch (requestError) { setError(requestError.message); } };
+  const confirmTwoFactor = async () => { setError(""); try { const response = await api.confirmTwoFactor(user, twoFactorCode); setTwoFactorEnabled(true); setSetupData(null); setTwoFactorCode(""); setBackupCodes(response.backup_codes || []); setMessage(response.message); } catch (requestError) { setError(requestError.message); } };
+  const turnOffTwoFactor = async () => { setError(""); try { const response = await api.disableTwoFactor(user, disablePassword, twoFactorCode); setTwoFactorEnabled(false); setDisablePassword(""); setTwoFactorCode(""); setBackupCodes([]); setMessage(response.message); } catch (requestError) { setError(requestError.message); } };
+  const downloadMyData = async () => { setError(""); try { const response = await api.exportPersonalData(user); downloadFile(JSON.stringify(response, null, 2), `fydara-data-${new Date().toISOString().slice(0, 10)}.json`, "application/json"); setMessage("Your personal data export has downloaded."); } catch (requestError) { setError(requestError.message); } };
+  const removeMyAccount = async () => { if (!window.confirm("This permanently deletes your TrueFit account and associated data. Continue?")) return; setError(""); try { await api.deleteAccount(user, deletePassword, deleteConfirmation); onLogout(); } catch (requestError) { setError(requestError.message); } };
+  return <div className="page-shell"><section className="page-heading"><div><span className="eyebrow">Account protection</span><h1>Security settings</h1><p>Manage your password and protect access to your TrueFit account.</p></div><Button variant="secondary" icon={ChevronRight} onClick={() => setPage("candidate")}>Back to dashboard</Button></section>{message && <div className="success-message security-message">{message}</div>}{error && <div className="form-error security-message">{error}</div>}<section className="security-layout"><form className="panel profile-form" onSubmit={submit}><div className="panel-head"><div><h2>Change password</h2><p>Use at least eight characters with uppercase, lowercase and a number.</p></div><ShieldCheck size={22} /></div><label>Current password<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label><label>New password<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /></label><label>Confirm new password<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></label><Button type="submit" disabled={busy}>{busy ? "Updating..." : "Update password"}</Button></form><article className="panel profile-form"><div className="panel-head"><div><h2>Two-factor authentication</h2><p>{twoFactorEnabled ? "Your account requires an authenticator or backup code at sign-in." : "Add an authenticator app as a second sign-in step."}</p></div><span className={twoFactorEnabled ? "status-pill status-offer" : "status-pill"}>{twoFactorEnabled ? "Enabled" : "Off"}</span></div>{!twoFactorEnabled && !setupData && <Button icon={ShieldCheck} onClick={beginTwoFactor}>Set up authenticator</Button>}{setupData && <div className="two-factor-setup"><p>Add this secret to Google Authenticator, Microsoft Authenticator, Authy, or another TOTP app:</p><code>{setupData.secret}</code><small>{setupData.otpauth_uri}</small><label>Six-digit authenticator code<input value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" /></label><Button onClick={confirmTwoFactor} disabled={twoFactorCode.length !== 6}>Verify and enable</Button></div>}{twoFactorEnabled && <div className="two-factor-disable"><label>Password<input type="password" value={disablePassword} onChange={(event) => setDisablePassword(event.target.value)} /></label><label>Authenticator or backup code<input value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value.replace(/\s/g, "").slice(0, 12))} /></label><Button variant="secondary" onClick={turnOffTwoFactor} disabled={!disablePassword || twoFactorCode.length < 6}>Disable 2FA</Button></div>}{backupCodes.length > 0 && <div className="backup-codes"><strong>Save these one-time backup codes now</strong><code>{backupCodes.join("\n")}</code><small>Each code can be used once if you lose access to your authenticator.</small></div>}</article></section><section className="panel privacy-panel"><div className="panel-head"><div><h2>Privacy and personal data</h2><p>Download a portable copy of your account data or permanently delete your account.</p></div><Button variant="secondary" icon={Upload} onClick={downloadMyData}>Download my data</Button></div><div className="danger-zone"><div><strong>Delete account</strong><p>This removes your account, profile, skills, experience, achievements, generated CVs and usage records.</p></div><label>Password<input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} /></label><label>Type your email to confirm<input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} placeholder={user} /></label><Button variant="secondary" onClick={removeMyAccount} disabled={!deletePassword || deleteConfirmation !== user}>Delete permanently</Button></div></section></div>;
+}
+
 function CandidateDashboard({ setPage, user }) {
-  const displayName = user ? user.split("@")[0] : "Alex";
-  const recentApplications = [
-    { company: "Northwind Labs", role: "Senior Frontend Engineer", status: "Screening", score: 68, initials: "NL", age: "2 days ago" },
-    { company: "Mapbox", role: "Frontend Engineer", status: "Interview", score: 82, initials: "MB", age: "1 week ago" },
-    { company: "Klarna", role: "UI Engineer", status: "Applied", score: 74, initials: "KI", age: "3 days ago" },
-    { company: "Pleo", role: "React Developer", status: "Offer", score: 90, initials: "PL", age: "2 weeks ago" },
-  ];
+  const [dashboard, setDashboard] = useState({ profile: {}, experiences: [], skills: [], cvs: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    api.profile(user)
+      .catch(async () => { await api.createProfile(user, user.split("@")[0]); return api.profile(user); })
+      .then((data) => { setDashboard(data); setError(""); })
+      .catch((requestError) => setError(requestError.message))
+      .finally(() => setLoading(false));
+  }, [user]);
+  const profile = dashboard.profile || {};
+  const displayName = profile.full_name || (user ? user.split("@")[0] : "Candidate");
+  const cvs = dashboard.cvs || [];
+  const activeApplications = cvs.filter((cv) => !["Draft", "Rejected"].includes(cv.application_status)).length;
+  const offers = cvs.filter((cv) => cv.application_status === "Offer").length;
+  const recentApplications = cvs.slice(0, 4).map((cv) => {
+    const score = Number(cv.match_score || 0);
+    const normalizedScore = Math.round(score <= 1 ? score * 100 : score);
+    const created = cv.created_at ? new Date(cv.created_at) : null;
+    return { id: cv.id, company: "Tailored CV", role: cv.job_title || "Untitled role", status: cv.application_status || "Draft", score: normalizedScore, initials: (cv.job_title || "CV").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), age: created && !Number.isNaN(created.valueOf()) ? created.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "" };
+  });
+  const profileChecks = [profile.full_name, profile.professional_summary, profile.location, dashboard.skills?.length, dashboard.experiences?.length];
+  const profileStrength = Math.round((profileChecks.filter(Boolean).length / profileChecks.length) * 100);
+  const strongestCv = [...cvs].sort((a, b) => Number(b.match_score || 0) - Number(a.match_score || 0))[0];
+  const strongestScoreValue = Number(strongestCv?.match_score || 0);
+  const strongestScore = Math.round(strongestScoreValue <= 1 ? strongestScoreValue * 100 : strongestScoreValue);
   const actions = [
     [Target, "Optimise for a role", "Paste a JD, see your match, and tailor your CV.", "optimizer"],
     [CircleUserRound, "Build your profile", "Keep your career profile sharp for instant CVs.", "profile"],
@@ -267,7 +396,7 @@ function CandidateDashboard({ setPage, user }) {
   return (
     <div className="page-shell">
       <section className="page-heading">
-        <div><span className="eyebrow">Your job search</span><h1>Welcome back, {displayName}</h1><p>3 active applications - 1 offer on the table.</p></div>
+        <div><span className="eyebrow">Your job search</span><h1>Welcome back, {displayName}</h1><p>{loading ? "Loading your latest activity..." : `${cvs.length} tailored CV${cvs.length === 1 ? "" : "s"} - ${activeApplications} active application${activeApplications === 1 ? "" : "s"}${offers ? ` - ${offers} offer${offers === 1 ? "" : "s"}` : ""}.`}</p></div>
         <Button icon={Target} onClick={() => setPage("optimizer")}>Match a new role</Button>
       </section>
 
@@ -283,20 +412,22 @@ function CandidateDashboard({ setPage, user }) {
 
       <section className="candidate-home-grid">
         <article className="panel wide-panel">
-          <div className="panel-head"><div><h2>Recent applications</h2></div><button className="text-button" onClick={() => setPage("applications")}>View all <ArrowRight size={15} /></button></div>
+          <div className="panel-head"><div><h2>Recent tailored CVs</h2></div><button className="text-button" onClick={() => setPage("applications")}>View all <ArrowRight size={15} /></button></div>
           <div className="application-list candidate-application-list">
-            {recentApplications.map((item) => <button className="application-row candidate-app-row" key={item.company} onClick={() => setPage("applications")}><div className="company-mark">{item.initials}</div><div className="grow"><strong>{item.role}</strong><span>{item.company} - {item.age}</span></div><span className={`status-pill status-${item.status.toLowerCase()}`}>{item.status}</span><Score value={item.score} compact /></button>)}
+            {recentApplications.map((item) => <button className="application-row candidate-app-row" key={item.id} onClick={() => setPage("applications")}><div className="company-mark">{item.initials}</div><div className="grow"><strong>{item.role}</strong><span>{item.company} - {item.age}</span></div><span className={`status-pill status-${item.status.toLowerCase()}`}>{item.status}</span><Score value={item.score} compact /></button>)}
+            {!loading && !recentApplications.length && <div className="empty-state compact-empty"><FileText size={24} /><h2>No tailored CVs yet</h2><p>Match your first role to start building your application history.</p><Button icon={Target} onClick={() => setPage("optimizer")}>Match a role</Button></div>}
+            {error && <div className="error-message">{error}</div>}
           </div>
         </article>
 
         <div className="candidate-side-stack">
           <article className="panel profile-strength-card">
-            <Score value={83} />
-            <div><h2>Profile strength</h2><p>Add your portfolio link to reach 100%.</p><Button variant="secondary" icon={CircleUserRound} onClick={() => setPage("profile")}>Complete profile</Button></div>
+            <Score value={profileStrength} />
+            <div><h2>Profile strength</h2><p>{profileStrength === 100 ? "Your profile has the core information needed for tailored CVs." : "Add your summary, skills and experience to improve your matches."}</p><Button variant="secondary" icon={CircleUserRound} onClick={() => setPage("profile")}>{profileStrength === 100 ? "Review profile" : "Complete profile"}</Button></div>
           </article>
           <article className="panel next-move-card">
             <Sparkles size={19} />
-            <div><h2>Next best move</h2><p>Your <strong>Northwind Labs</strong> application scored 68%. Closing 3 skill gaps could lift it into the shortlist.</p><Button icon={Target} onClick={() => setPage("optimizer")}>Optimise it now</Button></div>
+            <div><h2>Next best move</h2><p>{strongestCv ? <>Your <strong>{strongestCv.job_title}</strong> CV scored {strongestScore}%. Tailor it against the latest job description to strengthen the match.</> : <>Create your first tailored CV and get an evidence-based match score.</>}</p><Button icon={Target} onClick={() => setPage("optimizer")}>{strongestCv ? "Optimise it now" : "Start matching"}</Button></div>
           </article>
         </div>
       </section>
@@ -304,52 +435,93 @@ function CandidateDashboard({ setPage, user }) {
   );
 }
 
-function Optimizer() {
+function Optimizer({ user, setPage }) {
   const [jd, setJd] = useState("Senior Frontend Engineer - Northwind Labs\n\nWe're building the data-visualization layer for a real-time analytics platform. You'll own complex, accessible UI and partner closely with design and backend.\n\nRequirements:\n- Expert-level React and modern JavaScript\n- Strong TypeScript across a large typed codebase\n- Deep CSS architecture skills and design-token systems\n- Accessibility - you build to WCAG AA standards by default\n- Solid testing discipline with Jest and React Testing Library\n- Comfortable consuming REST and GraphQL APIs");
+  const [jobTitle, setJobTitle] = useState("Senior Frontend Engineer");
   const [result, setResult] = useState(null);
+  const [profileBundle, setProfileBundle] = useState({ profile: {}, experiences: [], achievements_by_experience: {}, skills: [] });
   const [busy, setBusy] = useState(false);
-  const matched = ["React", "JavaScript", "CSS Architecture", "REST/GraphQL"];
-  const missing = ["TypeScript", "Accessibility (WCAG)", "Testing (Jest/RTL)", "Next.js", "Design Systems", "Performance"];
-  const suggestions = [
-    ["TypeScript", "Convert a project to TypeScript and list it with typed-codebase experience."],
-    ["Accessibility (WCAG)", "Add a line about WCAG AA, keyboard navigation, ARIA, or an audit you ran."],
-    ["Testing (Jest/RTL)", "Quantify your testing: coverage owned, Jest, or React Testing Library in context."],
-    ["Next.js", "Note any Next.js work, App Router, SSR, or a site you shipped with it."],
-    ["Design Systems", "Mention design-system contributions, components owned, or adoption driven."],
-    ["Performance", "Add a Lighthouse or Core Web Vitals improvement with a number."],
-  ];
+  const [message, setMessage] = useState("");
+  const [analysis, setAnalysis] = useState({ requirements: [], matched_requirements: [], missing_requirements: [], suggestions: [], evidence_score: 0 });
+  const jdFileRef = useRef(null);
+  useEffect(() => {
+    if (!user) return;
+    api.profile(user).then(setProfileBundle).catch((error) => setMessage(error.message));
+  }, [user]);
+  useEffect(() => {
+    if (!jd.trim()) { setAnalysis({ requirements: [], matched_requirements: [], missing_requirements: [], suggestions: [], evidence_score: 0 }); return undefined; }
+    const candidateText = JSON.stringify(profileBundle);
+    const timeout = setTimeout(() => {
+      api.analyseMatch({ job_description: jd, candidate_resume: candidateText })
+        .then(setAnalysis)
+        .catch((error) => setMessage(error.message));
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [jd, profileBundle]);
+  const matched = analysis.matched_requirements || [];
+  const missing = analysis.missing_requirements || [];
+  const matchScore = analysis.evidence_score || 0;
 
   async function renderPreview() {
     setBusy(true);
+    setMessage("");
     try {
-      const response = await api.renderCv({
-        profile: { full_name: "Candidate Profile", professional_summary: "Frontend engineer focused on accessible product experiences." },
-        work_experiences: [],
-        achievements_by_experience: {},
-        skills: [{ skill_name: "React" }, { skill_name: "TypeScript" }, { skill_name: "Testing" }],
-        job_description: jd,
-      });
+      const response = await api.renderCv({ profile: profileBundle.profile || {}, work_experiences: profileBundle.experiences || [], achievements_by_experience: profileBundle.achievements_by_experience || {}, skills: profileBundle.skills || [], job_description: jd });
       setResult(response.text);
+      setMessage("Tailored CV generated. Download it or save it to Applications.");
+    } catch (error) {
+      setMessage(error.message);
     } finally {
       setBusy(false);
     }
   }
 
+  const cvPayload = { profile: profileBundle.profile || {}, work_experiences: profileBundle.experiences || [], achievements_by_experience: profileBundle.achievements_by_experience || {}, skills: profileBundle.skills || [], job_description: jd };
+  const safeFilename = `${(profileBundle.profile?.full_name || "Fydara_CV").replace(/[^a-z0-9]+/gi, "_")}_${(jobTitle || "Role").replace(/[^a-z0-9]+/gi, "_")}`;
+  const downloadGeneratedCv = async (format) => {
+    setBusy(true);
+    try {
+      const response = format === "pdf" ? await api.downloadCvPdf(cvPayload) : await api.downloadCvDocx(cvPayload);
+      downloadFile(response.blob, `${safeFilename}.${format}`, format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      setMessage(`${format.toUpperCase()} downloaded successfully.`);
+    } catch (error) { setMessage(error.message); }
+    finally { setBusy(false); }
+  };
+  const saveGeneratedCv = async () => {
+    if (!result) return;
+    setBusy(true);
+    try {
+      await api.saveCv(user, { job_title: jobTitle.trim(), match_score: matchScore / 100, cv_content: result, job_description: jd });
+      setMessage("CV saved to Applications.");
+    } catch (error) { setMessage(error.message); }
+    finally { setBusy(false); }
+  };
+  const uploadJobDescription = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try { const response = await api.extractResume(file); setJd(response.text || ""); setMessage("Job description uploaded."); }
+    catch (error) { setMessage(error.message); }
+    finally { setBusy(false); event.target.value = ""; }
+  };
+
   return (
     <div className="page-shell">
-      <section className="page-heading"><div><span className="eyebrow">Per-role tailoring</span><h1>CV Optimizer</h1><p>Paste any job description. TrueFit matches it against your profile, scores the fit, and shows exactly what to add.</p></div><Button variant="secondary" icon={CircleUserRound}>Edit profile</Button></section>
+      <section className="page-heading"><div><span className="eyebrow">Per-role tailoring</span><h1>CV Optimizer</h1><p>Paste any job description. Fydara matches it against your profile, scores the fit, and generates an application-ready CV.</p></div><Button variant="secondary" icon={CircleUserRound} onClick={() => setPage("profile")}>Edit profile</Button></section>
+      {message && <div className={message.toLowerCase().includes("failed") || message.toLowerCase().includes("error") ? "error-message optimizer-message" : "success-message optimizer-message"}>{message}</div>}
       <section className="optimizer-grid">
         <article className="panel optimizer-input-panel">
-          <div className="panel-head"><div><h2><FileText size={17} /> Job description</h2></div><div className="heading-actions"><Button variant="ghost" icon={Upload}>Upload</Button><button className="icon-button" onClick={() => setJd("")} title="Clear"><X size={17} /></button></div></div>
+          <label>Job title<input value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="e.g. HR Advisor" /></label>
+          <div className="panel-head optimizer-jd-head"><div><h2><FileText size={17} /> Job description</h2></div><div className="heading-actions"><input ref={jdFileRef} className="hidden-input" type="file" accept="application/pdf" onChange={uploadJobDescription} /><Button variant="ghost" icon={Upload} onClick={() => jdFileRef.current?.click()}>Upload PDF</Button><button className="icon-button" onClick={() => setJd("")} title="Clear"><X size={17} /></button></div></div>
           <textarea value={jd} onChange={(e) => setJd(e.target.value)} />
-          <div className="optimizer-input-footer"><Button icon={Target} onClick={renderPreview} disabled={busy || !jd.trim()}>{busy ? "Matching..." : "Match against my CV"}</Button><span>{matched.length + missing.length} requirements detected</span></div>
+          <div className="optimizer-input-footer"><Button icon={Target} onClick={renderPreview} disabled={busy || !jd.trim() || !jobTitle.trim()}>{busy ? "Generating..." : "Generate tailored CV"}</Button><span>{matched.length + missing.length} relevant requirements detected</span></div>
           <div className="parsed-requirements"><strong>Parsed requirements</strong><div className="skills">{[...matched, ...missing].map((skill) => <span className="skill" key={skill}>{skill}</span>)}</div></div>
         </article>
 
         <div className="optimizer-results">
           <article className="panel optimizer-score-card">
-            <Score value={62} />
-            <div><h2>Your match</h2><p>You match <strong>4/10</strong> requirements. Closing the 6 gaps below could lift you into the shortlist.</p><Button icon={Sparkles} onClick={renderPreview} disabled={busy || !jd.trim()}>{busy ? "Applying..." : "Apply all optimisations"}</Button></div>
+            <Score value={matchScore} />
+            <div><h2>Your match</h2><p>You match <strong>{matched.length}/{matched.length + missing.length || 0}</strong> detected requirements. Review the gaps before generating your tailored CV.</p><Button icon={Sparkles} onClick={renderPreview} disabled={busy || !jd.trim() || !jobTitle.trim()}>{busy ? "Applying..." : "Apply profile to role"}</Button></div>
           </article>
 
           <article className="panel">
@@ -359,16 +531,16 @@ function Optimizer() {
 
           <article className="panel optimisation-panel">
             <div className="panel-head"><div><h2>Optimisation suggestions</h2><p>Add each to your CV to raise your match score.</p></div></div>
-            <div className="suggestion-list">{suggestions.map(([title, body]) => <div className="suggestion-row" key={title}><Sparkles size={16} /><div><strong>{title}</strong><p>{body}</p></div><Button variant="secondary" icon={Check}>Add</Button></div>)}</div>
+            <div className="suggestion-list">{(analysis.suggestions || []).map(({ requirement, advice }) => <div className="suggestion-row" key={requirement}><Sparkles size={16} /><div><strong>{requirement}</strong><p>{advice}</p></div></div>)}</div>
           </article>
         </div>
       </section>
-      {result && <section className="panel result-panel cv-preview-panel"><div className="panel-head"><div><h2>Tailored CV preview</h2><p>Generated through the FastAPI backend.</p></div><Score value={78} /></div><pre>{result}</pre></section>}
+      {result && <section className="panel result-panel cv-preview-panel"><div className="panel-head"><div><h2>Tailored CV preview</h2><p>Generated from your persisted Fydara profile.</p></div><Score value={matchScore} /></div><pre>{result}</pre><div className="cv-download-actions"><Button icon={FileText} onClick={() => downloadGeneratedCv("pdf")} disabled={busy}>Download PDF</Button><Button variant="secondary" icon={FileText} onClick={() => downloadGeneratedCv("docx")} disabled={busy}>Download DOCX</Button><Button variant="secondary" icon={BriefcaseBusiness} onClick={saveGeneratedCv} disabled={busy || !jobTitle.trim()}>Save to Applications</Button></div></section>}
     </div>
   );
 }
 
-function RecruiterWorkspace({ onOpenReport, screening }) {
+function RecruiterWorkspace({ onOpenReport, screening, recruiterEmail }) {
   const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
@@ -394,6 +566,9 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
     setHasReviewed,
     threshold,
     setThreshold,
+    workspaceStatus,
+    communicationHistory,
+    setCommunicationHistory,
   } = screening;
 
   const reviewedCandidates = useMemo(() => candidates.filter((candidate) => typeof candidate.score === "number"), [candidates]);
@@ -419,6 +594,7 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
     setCandidateMessages({});
     setReviewedMessages({});
     setSentMessages({});
+    setCommunicationHistory([]);
     setHasReviewed(false);
     setQuery("");
     setShowFilters(false);
@@ -447,6 +623,7 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
         extracted.push({
           name: file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " "),
           resume: result.text,
+          email: inferCandidateEmail(result.text),
         });
       }
 
@@ -457,6 +634,7 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
         status: "Pending Review",
         skills: inferSkills(candidate.resume),
         resume: candidate.resume,
+        email: candidate.email,
       }));
 
       setCandidates(nextCandidates);
@@ -501,8 +679,13 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
         role: getJobTitle(jobDescription),
         score: Math.round((candidate.score || 0) * 100),
         status: "Reviewing",
-        skills: inferSkills(candidate.resume || candidates[index]?.resume),
+        skills: candidate.matched_requirements || [],
+        matched_requirements: candidate.matched_requirements || [],
+        missing_requirements: candidate.missing_requirements || [],
+        bonus_skills: candidate.bonus_skills || [],
+        suggestions: candidate.suggestions || [],
         resume: candidate.resume || candidates[index]?.resume,
+        email: candidates[index]?.email || inferCandidateEmail(candidate.resume || candidates[index]?.resume),
       }));
       const nextMessages = {};
       const nextCandidates = [];
@@ -557,15 +740,23 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
     ));
   }
 
-  function markFeedbackSent() {
+  async function markFeedbackSent() {
     if (!selectedCandidate) return;
     if (!selectedReviewed) {
       setError("A human compliance check is required before this message can be sent.");
       return;
     }
-    setSentMessages((current) => ({ ...current, [selectedCandidate.name]: true }));
-    setError("");
-    setStatus(`${selectedMessage?.type === "invite" ? "Interview invite" : "Feedback"} marked as sent to ${selectedCandidate.name}.`);
+    if (!selectedCandidate.email) { setError("Add the candidate's email address before sending."); return; }
+    setBusy(true);
+    try {
+      const subject = selectedMessage?.subject || `Update on your application for ${selectedCandidate.role || jobTitle}`;
+      const delivery = await api.sendEmail({ recruiter_email: recruiterEmail, to_email: selectedCandidate.email, subject, body: selectedMessage?.body || "" });
+      setSentMessages((current) => ({ ...current, [selectedCandidate.name]: true }));
+      setCommunicationHistory((current) => [...current, { candidate_name: selectedCandidate.name, to_email: selectedCandidate.email, subject, type: selectedMessage?.type || "feedback", sent_at: new Date().toISOString(), provider_status: delivery.provider_status, message_id: delivery.message_id || "" }]);
+      setError("");
+      setStatus(`${selectedMessage?.type === "invite" ? "Interview invite" : "Feedback"} sent to ${selectedCandidate.email}.`);
+    } catch (sendError) { setError(sendError.message); }
+    finally { setBusy(false); }
   }
 
   function setSelectedReviewed(checked) {
@@ -577,10 +768,12 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
     const text = resumeText.toLowerCase();
     return ["React", "TypeScript", "Accessibility", "Testing", "GraphQL", "Python", "SQL", "CSS"].filter((skill) => text.includes(skill.toLowerCase())).slice(0, 5);
   }
+  function inferCandidateEmail(resumeText = "") { return resumeText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ""; }
+  function updateCandidateEmail(email) { if (!selectedCandidate) return; setCandidates((current) => current.map((candidate) => candidate.name === selectedCandidate.name ? { ...candidate, email } : candidate)); setSelectedCandidate((current) => current ? { ...current, email } : current); }
 
   return (
     <div className="page-shell">
-      <section className="page-heading"><div><span className="eyebrow">Recruiter workspace</span><h1>{jobTitle}</h1><p>Start with a job description, upload resumes, then review CVs when you are ready to rank them.</p></div><div className="heading-actions"><input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" multiple onChange={processUploadedFiles} /><Button variant="secondary" icon={Sparkles} onClick={startNewScreening} disabled={busy}>Start screening</Button><Button variant="secondary" icon={Upload} onClick={() => fileInputRef.current?.click()} disabled={busy || !jobDescription.trim()}>Upload resumes</Button><Button icon={Sparkles} onClick={reviewCVs} disabled={busy || !candidates.length || !jobDescription.trim()}>Review CVs</Button></div></section>
+      <section className="page-heading"><div><span className="eyebrow">Recruiter workspace</span><h1>{jobTitle}</h1><p>Start with a job description, upload resumes, then review CVs when you are ready to rank them.</p>{workspaceStatus && <small className="workspace-save-status">{workspaceStatus}</small>}</div><div className="heading-actions"><input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" multiple onChange={processUploadedFiles} /><Button variant="secondary" icon={Sparkles} onClick={startNewScreening} disabled={busy}>Start screening</Button><Button variant="secondary" icon={Upload} onClick={() => fileInputRef.current?.click()} disabled={busy || !jobDescription.trim()}>Upload resumes</Button><Button icon={Sparkles} onClick={reviewCVs} disabled={busy || !candidates.length || !jobDescription.trim()}>Review CVs</Button></div></section>
       <section className="panel jd-panel">
         <div className="panel-head"><div><h2>Job description</h2><p>Resume ranking and feedback use this role description.</p></div></div>
         <textarea value={jobDescription} onChange={(event) => { setJobDescription(event.target.value); setHasReviewed(false); setCandidateMessages({}); setReviewedMessages({}); setSentMessages({}); }} placeholder="Paste the job title on the first line, then the full job description below." />
@@ -610,14 +803,15 @@ function RecruiterWorkspace({ onOpenReport, screening }) {
           <div className="empty-state compact-empty">
             <FileText size={30} />
             <h2>{candidates.length ? `${candidates.length} resume${candidates.length === 1 ? "" : "s"} ready for review` : "Start a new screening run"}</h2>
-            <p>{candidates.length ? "TrueFit has not ranked these CVs yet. Confirm the job description, then click Review CVs." : "Paste or confirm a job description, upload resumes, then click Review CVs to rank candidates."}</p>
+            <p>{candidates.length ? "Fydara has not ranked these CVs yet. Confirm the job description, then click Review CVs." : "Paste or confirm a job description, upload resumes, then click Review CVs to rank candidates."}</p>
             <div className="staged-resumes">
               {candidates.map((candidate) => <span className="skill" key={candidate.name}>{candidate.name}</span>)}
             </div>
           </div>
         </section>
       )}
-      {selectedMessage && <section className="panel feedback-panel"><div className="panel-head"><div><h2>{selectedMessage.title}</h2><p>{selectedCandidate?.name}{selectedMessage.subject ? ` - ${selectedMessage.subject}` : ""}</p></div><Button variant="secondary" icon={Mail} onClick={() => navigator.clipboard?.writeText(selectedMessage.body)}>Copy</Button></div><pre>{selectedMessage.body}</pre><div className="feedback-review"><label className="check-row"><input type="checkbox" checked={selectedReviewed} onChange={(event) => setSelectedReviewed(event.target.checked)} /> Human compliance check completed</label><Button icon={Mail} onClick={markFeedbackSent} disabled={!selectedReviewed || selectedSent}>{selectedSent ? "Sent" : selectedMessage.type === "invite" ? "Send invite" : "Send feedback"}</Button></div>{selectedSent && <div className="success-message">Message has been marked as sent. Email delivery backend still needs to be added for real applicant email delivery.</div>}</section>}
+      {selectedMessage && <section className="panel feedback-panel"><div className="panel-head"><div><h2>{selectedMessage.title}</h2><p>{selectedCandidate?.name}{selectedMessage.subject ? ` - ${selectedMessage.subject}` : ""}</p></div><Button variant="secondary" icon={Mail} onClick={() => navigator.clipboard?.writeText(selectedMessage.body)}>Copy</Button></div><label>Candidate email<input type="email" value={selectedCandidate?.email || ""} onChange={(event) => updateCandidateEmail(event.target.value)} placeholder="candidate@example.com" /></label><pre>{selectedMessage.body}</pre><div className="feedback-review"><label className="check-row"><input type="checkbox" checked={selectedReviewed} onChange={(event) => setSelectedReviewed(event.target.checked)} /> Human compliance check completed</label><Button icon={Mail} onClick={markFeedbackSent} disabled={!selectedReviewed || selectedSent || busy}>{busy ? "Sending..." : selectedSent ? "Sent" : selectedMessage.type === "invite" ? "Send invite" : "Send feedback"}</Button></div>{selectedSent && <div className="success-message">Accepted by the configured email provider and recorded in communication history.</div>}</section>}
+      {communicationHistory.length > 0 && <section className="panel communication-history"><div className="panel-head"><div><h2>Communication history</h2><p>Provider-confirmed sends for this workspace.</p></div><span className="status-tag">{communicationHistory.length} sent</span></div>{communicationHistory.slice().reverse().map((item) => <div className="communication-history-row" key={`${item.sent_at}-${item.to_email}`}><div><strong>{item.candidate_name}</strong><small>{item.to_email} - {item.subject}</small></div><span>{new Date(item.sent_at).toLocaleString("en-GB")}</span></div>)}</section>}
     </div>
   );
 }
@@ -808,11 +1002,11 @@ function FeedbackCandidateButton({ candidate, selected, onClick }) {
   );
 }
 
-function CandidatesPage({ onOpenReport }) {
+export function CandidatesPage({ onOpenReport, workspace }) {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All roles");
   const [statusFilter, setStatusFilter] = useState("All statuses");
-  const candidates = [
+  const sampleCandidatesPool = [
     { name: "Amara Okafor", title: "Lead UI Engineer", company: "Mapbox", role: "Senior Frontend Engineer", score: 92, status: "Shortlist", exp: "8y", source: "Referral", skills: ["React", "TypeScript", "Accessibility"], resume: "Lead UI engineer with React, TypeScript, accessibility, testing, CSS architecture and measurable delivery." },
     { name: "Nina Petrova", title: "EM", company: "GitLab", role: "Engineering Manager", score: 90, status: "Shortlist", exp: "11y", source: "Referral", skills: ["Leadership", "Delivery", "Systems"], resume: "Engineering manager with strong delivery systems and people leadership." },
     { name: "Hannah Reed", title: "Senior Designer", company: "Pitch", role: "Product Designer", score: 89, status: "Shortlist", exp: "7y", source: "Referral", skills: ["Design Systems", "Research", "Product"], resume: "Senior product designer with strong design-system craft and research instincts." },
@@ -830,6 +1024,7 @@ function CandidatesPage({ onOpenReport }) {
     { name: "Tomas Novak", title: "Engineer", company: "Productboard", role: "Senior Frontend Engineer", score: 58, status: "New", exp: "5y", source: "LinkedIn", skills: ["React", "CSS Architecture", "REST/GraphQL"], resume: "Solid JavaScript engineer transitioning to TypeScript. Good product instincts, still building senior depth." },
     { name: "Omar Haddad", title: "Engineer", company: "Careem", role: "Senior Frontend Engineer", score: 47, status: "Reject", exp: "3y", source: "LinkedIn", skills: ["React", "CSS Architecture"], resume: "Early-career engineer with enthusiasm and fundamentals, below the senior bar for this role." },
   ];
+  const candidates = (workspace?.candidates || []).map((candidate) => ({ ...candidate, title: candidate.title || "Uploaded candidate", company: candidate.company || "Not provided", role: candidate.role || workspace?.job_title || "Current role", exp: candidate.exp || "-", source: candidate.source || "Uploaded CV" }));
   const roles = ["All roles", ...Array.from(new Set(candidates.map((candidate) => candidate.role)))];
   const statuses = ["All statuses", ...Array.from(new Set(candidates.map((candidate) => candidate.status)))];
   const filteredCandidates = candidates.filter((candidate) => {
@@ -844,7 +1039,7 @@ function CandidatesPage({ onOpenReport }) {
       ["Candidate", "Current title", "Company", "Applied for", "Match score", "Status", "Experience", "Source"],
       ...filteredCandidates.map((candidate) => [candidate.name, candidate.title, candidate.company, candidate.role, `${candidate.score}%`, candidate.status, candidate.exp, candidate.source]),
     ],
-    "truefit-talent-pool.csv",
+    "fydara-talent-pool.csv",
   );
 
   return (
@@ -875,9 +1070,9 @@ function MatchReportPage({ candidate, setPage, reportContext }) {
   const generatedMessage = reportContext?.message;
   const score = activeCandidate.score || 0;
   const tone = score >= 80 ? "Strong fit" : score >= 65 ? "Potential fit" : "Possible fit";
-  const matched = activeCandidate.skills?.length ? activeCandidate.skills : ["React", "CSS Architecture", "REST/GraphQL"];
-  const missing = score >= 80 ? ["Performance"] : score >= 65 ? ["Accessibility (WCAG)", "Testing (Jest/RTL)"] : ["TypeScript", "Accessibility (WCAG)", "Testing (Jest/RTL)"];
-  const bonus = score >= 80 ? ["Design Systems", "Leadership"] : ["Node.js"];
+  const matched = activeCandidate.matched_requirements || activeCandidate.skills || [];
+  const missing = activeCandidate.missing_requirements || [];
+  const bonus = activeCandidate.bonus_skills || [];
   const feedbackType = generatedMessage?.title || (generatedMessage?.type === "invite" ? "Interview invite" : generatedMessage?.type === "feedback" ? "Rejection feedback" : score >= 70 ? "Interview invite" : "Rejection feedback");
   const fallbackFeedbackBody = score >= 70
     ? `Hi ${activeCandidate.name.split(" ")[0]},\n\nThank you for applying for the ${activeCandidate.role} role at Northwind Labs. Your CV shows strong alignment with the role, especially around ${matched.slice(0, 2).join(" and ")}.\n\nWe would like to invite you to the next interview stage so we can learn more about your recent work and the impact you have had on product teams.`
@@ -888,6 +1083,7 @@ function MatchReportPage({ candidate, setPage, reportContext }) {
   function moveForward() {
     setStatus(score >= 70 ? "Interview" : "Reviewing");
   }
+  const exportCandidateReport = () => downloadTextPdf(["TRUEFIT CANDIDATE MATCH REPORT", `Generated: ${new Date().toLocaleDateString("en-GB")}`, "", `Candidate: ${activeCandidate.name}`, `Email: ${activeCandidate.email || "Not provided"}`, `Role: ${activeCandidate.role}`, `Match score: ${score}%`, `Status: ${status}`, "", `Matched requirements: ${matched.join(", ") || "None detected"}`, `Missing requirements: ${missing.join(", ") || "None detected"}`, `Bonus skills: ${bonus.join(", ") || "None detected"}`, "", "CANDIDATE FEEDBACK", `Subject: ${feedbackSubject}`, "", ...feedbackBody.split("\n"), "", "RESUME EVIDENCE", ...(activeCandidate.resume || "No resume text available").split("\n")], `truefit-${activeCandidate.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-report.pdf`);
 
   return (
     <div className="page-shell match-report-page">
@@ -901,7 +1097,7 @@ function MatchReportPage({ candidate, setPage, reportContext }) {
         <div className="report-hero-actions">
           <span className="status-tag">{status}</span>
           <span className="status-tag">Rank #9</span>
-          <Button variant="secondary" icon={Upload}>Export report</Button>
+          <Button variant="secondary" icon={Upload} onClick={exportCandidateReport}>Export report</Button>
           <select className="status-select report-status" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option>New</option>
             <option>Reviewing</option>
@@ -985,56 +1181,55 @@ function SkillSection({ title, items, tone }) {
   );
 }
 
-function ReportsPage() {
+export function ReportsPage({ workspace }) {
+  const candidates = workspace?.candidates || [];
+  const screened = candidates.filter((candidate) => typeof candidate.score === "number");
+  const shortlistedCandidates = candidates.filter((candidate) => ["Shortlist", "Interview", "Offer"].includes(candidate.status));
+  const averageMatch = screened.length ? Math.round(screened.reduce((total, candidate) => total + Number(candidate.score || 0), 0) / screened.length) : 0;
+  const shortlistRate = screened.length ? Math.round((shortlistedCandidates.length / screened.length) * 100) : 0;
   const currentMetrics = [
-    ["Candidates screened", "64", "of 85 applied", Users],
-    ["Average match", "77%", "across all roles", Target],
-    ["Shortlist rate", "23%", "15 shortlisted", ShieldCheck],
-    ["Avg time-to-screen", "1.4d", "down 0.6d", BarChart3],
+    ["Candidates screened", String(screened.length), `of ${candidates.length} uploaded`, Users],
+    ["Average match", `${averageMatch}%`, "current workspace", Target],
+    ["Shortlist rate", `${shortlistRate}%`, `${shortlistedCandidates.length} shortlisted`, ShieldCheck],
+    ["Avg time-to-screen", "Not tracked", "Add screening timestamps to calculate", BarChart3],
   ];
   const recruitmentMetrics = [
-    { id: "time-fill", label: "Time to fill", value: "32d", detail: "Job published to candidate hired" },
-    { id: "time-hire", label: "Time to hire", value: "18d", detail: "Candidate approached to offer accepted" },
-    { id: "cost-hire", label: "Cost per hire", value: "£4,250", detail: "Internal + external hiring cost per hire" },
-    { id: "quality-hire", label: "Quality of hire", value: "86%", detail: "Hires meeting first-year performance expectations" },
-    { id: "source-hire", label: "Source of hire", value: "Referral", detail: "Top sourcing channel for successful hires" },
-    { id: "first-year-resignation", label: "First-year resignation rate", value: "4%", detail: "First-year resignations / headcount" },
-    { id: "first-year-turnover", label: "First-year turnover rate", value: "7%", detail: "First-year leavers / recruits" },
-    { id: "first-month-turnover", label: "First-month turnover rate", value: "1%", detail: "First-month leavers / recruits" },
-    { id: "manager-satisfaction", label: "Hiring manager satisfaction", value: "88%", detail: "Hires performing well / total hires" },
-    { id: "candidate-satisfaction", label: "Candidate job satisfaction", value: "84%", detail: "Satisfied new hires / total hires" },
-    { id: "applicants-opening", label: "Applicants per opening", value: "17", detail: "Applicants / job openings" },
-    { id: "selection-ratio", label: "Selection ratio", value: "2.4%", detail: "Hires / total candidates" },
-    { id: "offer-acceptance", label: "Offer acceptance rate", value: "83%", detail: "Accepted offers / offers made" },
-    { id: "vacancy-rate", label: "Vacancy rate", value: "6%", detail: "Open positions / total positions" },
-    { id: "completion-rate", label: "Application completion rate", value: "79%", detail: "Completed / started applications" },
-    { id: "yield-ratio", label: "Yield ratio", value: "23%", detail: "Candidates completing the current stage" },
-    { id: "source-effectiveness", label: "Sourcing channel effectiveness", value: "12.8", detail: "Channel impressions per application" },
-    { id: "source-cost", label: "Sourcing channel cost", value: "£310", detail: "Channel spend per successful applicant" },
-    { id: "opl-cost", label: "Cost to optimum productivity", value: "£7,900", detail: "Onboarding and ramp-up cost to full productivity" },
+    { id: "time-fill", label: "Time to fill", value: "Not tracked", detail: "Job published to candidate hired" },
+    { id: "time-hire", label: "Time to hire", value: "Not tracked", detail: "Candidate approached to offer accepted" },
+    { id: "cost-hire", label: "Cost per hire", value: "Not tracked", detail: "Internal + external hiring cost per hire" },
+    { id: "quality-hire", label: "Quality of hire", value: "Not tracked", detail: "Hires meeting first-year performance expectations" },
+    { id: "source-hire", label: "Source of hire", value: "Not tracked", detail: "Top sourcing channel for successful hires" },
+    { id: "first-year-resignation", label: "First-year resignation rate", value: "Not tracked", detail: "First-year resignations / headcount" },
+    { id: "first-year-turnover", label: "First-year turnover rate", value: "Not tracked", detail: "First-year leavers / recruits" },
+    { id: "first-month-turnover", label: "First-month turnover rate", value: "Not tracked", detail: "First-month leavers / recruits" },
+    { id: "manager-satisfaction", label: "Hiring manager satisfaction", value: "Not tracked", detail: "Hires performing well / total hires" },
+    { id: "candidate-satisfaction", label: "Candidate job satisfaction", value: "Not tracked", detail: "Satisfied new hires / total hires" },
+    { id: "applicants-opening", label: "Applicants per opening", value: String(candidates.length), detail: "Applicants / job openings" },
+    { id: "selection-ratio", label: "Selection ratio", value: `${shortlistRate}%`, detail: "Selected candidates / total candidates" },
+    { id: "offer-acceptance", label: "Offer acceptance rate", value: "Not tracked", detail: "Accepted offers / offers made" },
+    { id: "vacancy-rate", label: "Vacancy rate", value: "Not tracked", detail: "Open positions / total positions" },
+    { id: "completion-rate", label: "Application completion rate", value: "Not tracked", detail: "Completed / started applications" },
+    { id: "yield-ratio", label: "Yield ratio", value: `${shortlistRate}%`, detail: "Candidates completing the current stage" },
+    { id: "source-effectiveness", label: "Sourcing channel effectiveness", value: "Not tracked", detail: "Channel impressions per application" },
+    { id: "source-cost", label: "Sourcing channel cost", value: "Not tracked", detail: "Channel spend per successful applicant" },
+    { id: "opl-cost", label: "Cost to optimum productivity", value: "Not tracked", detail: "Onboarding and ramp-up cost to full productivity" },
   ];
   const [selectedMetricIds, setSelectedMetricIds] = useState(["time-fill", "time-hire", "cost-hire", "quality-hire"]);
   const selectedRecruitmentMetrics = recruitmentMetrics.filter((metric) => selectedMetricIds.includes(metric.id));
   const toggleMetric = (id) => setSelectedMetricIds((selected) => selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
   const funnel = [
-    ["Applied", 85, 100],
-    ["Screened", 64, 75],
-    ["Shortlisted", 15, 23],
-    ["Interview", 6, 40],
-    ["Offer", 2, 33],
+    ["Uploaded", candidates.length, 100],
+    ["Screened", screened.length, candidates.length ? Math.round((screened.length / candidates.length) * 100) : 0],
+    ["Shortlisted", shortlistedCandidates.length, screened.length ? shortlistRate : 0],
+    ["Interview", candidates.filter((candidate) => candidate.status === "Interview").length, candidates.length ? Math.round((candidates.filter((candidate) => candidate.status === "Interview").length / candidates.length) * 100) : 0],
+    ["Offer", candidates.filter((candidate) => candidate.status === "Offer").length, candidates.length ? Math.round((candidates.filter((candidate) => candidate.status === "Offer").length / candidates.length) * 100) : 0],
   ];
   const sources = [
-    ["LinkedIn", 44],
-    ["Inbound", 31],
-    ["Referral", 25],
+    ["Uploaded CV", candidates.length ? 100 : 0],
   ];
-  const roles = [
-    ["Senior Frontend Engineer", "Engineering", 10, 74, 92],
-    ["Product Designer", "Design", 18, 71, 89],
-    ["Backend Engineer (Go)", "Engineering", 23, 68, 86],
-    ["Data Analyst", "Data", 12, 66, 81],
-    ["Engineering Manager", "Engineering", 7, 78, 90],
-  ];
+  const roles = workspace?.job_description ? [[workspace.job_title || getJobTitle(workspace.job_description), "Current workspace", candidates.length, averageMatch, screened.length ? Math.max(...screened.map((candidate) => Number(candidate.score || 0))) : 0]] : [];
+  const distribution = [["Excellent", "80-100", screened.filter((candidate) => candidate.score >= 80).length], ["Good", "65-79", screened.filter((candidate) => candidate.score >= 65 && candidate.score < 80).length], ["Fair", "50-64", screened.filter((candidate) => candidate.score >= 50 && candidate.score < 65).length], ["Limited", "0-49", screened.filter((candidate) => candidate.score < 50).length]];
+  const distributionMax = Math.max(1, ...distribution.map((item) => item[2]));
   const exportReport = () => downloadTextPdf([
     "TRUEFIT HIRING REPORT",
     `Generated: ${new Date().toLocaleDateString("en-GB")}`,
@@ -1050,7 +1245,7 @@ function ReportsPage() {
     "",
     "CANDIDATE SOURCES",
     ...sources.map(([label, value]) => `${label}: ${value}%`),
-  ], "truefit-hiring-report.pdf");
+  ], "fydara-hiring-report.pdf");
 
   return (
     <div className="page-shell">
@@ -1072,7 +1267,7 @@ function ReportsPage() {
         {selectedRecruitmentMetrics.map(({ id, label, value, detail }) => <article className="metric-card report-metric" key={id}><BarChart3 size={20} /><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>)}
       </section>}
       <section className="report-grid">
-        <article className="panel"><div className="panel-head"><div><h2>Match score distribution</h2><p>How the screened pool spreads across quality tiers.</p></div></div><div className="distribution"><span style={{ height: "72%" }}>8<small>Excellent<br />80-100</small></span><span style={{ height: "54%" }}>5<small>Good<br />65-79</small></span><span style={{ height: "32%" }}>2<small>Fair<br />50-64</small></span><span style={{ height: "20%" }}>1<small>Limited<br />0-49</small></span></div></article>
+        <article className="panel"><div className="panel-head"><div><h2>Match score distribution</h2><p>How the screened pool spreads across quality tiers.</p></div></div><div className="distribution">{distribution.map(([label, range, count]) => <span key={label} style={{ height: `${Math.max(12, Math.round((count / distributionMax) * 80))}%` }}>{count}<small>{label}<br />{range}</small></span>)}</div></article>
         <article className="panel"><div className="panel-head"><div><h2>Hiring funnel</h2><p>Conversion from applicant to offer.</p></div></div>{funnel.map(([label, count, width]) => <div className="funnel-row" key={label}><span>{label}</span><div><i style={{ width: `${width}%` }} /></div><strong>{count}</strong></div>)}</article>
       </section>
       <section className="report-grid lower-report-grid">
@@ -1083,9 +1278,9 @@ function ReportsPage() {
   );
 }
 
-function JobsPage({ setPage, onStartScreening }) {
+function JobsPage({ setPage, onStartScreening, workspace }) {
   const [filter, setFilter] = useState("All Roles");
-  const roles = [
+  const sampleRoles = [
     { title: "Senior Frontend Engineer", team: "Engineering", location: "Remote - US / EU", status: "Open", applicants: 10, top: 92, shortlisted: 4, screened: 10, total: 10, lead: "Jordan Reyes", posted: "Apr 28" },
     { title: "Product Designer", team: "Design", location: "Berlin, DE", status: "Open", applicants: 18, top: 89, shortlisted: 5, screened: 14, total: 18, lead: "Mia Chen", posted: "May 04" },
     { title: "Backend Engineer (Go)", team: "Engineering", location: "Remote - Global", status: "Open", applicants: 23, top: 86, shortlisted: 2, screened: 9, total: 23, lead: "Jordan Reyes", posted: "May 09" },
@@ -1093,6 +1288,8 @@ function JobsPage({ setPage, onStartScreening }) {
     { title: "Engineering Manager", team: "Engineering", location: "Remote - US", status: "Open", applicants: 7, top: 90, shortlisted: 1, screened: 4, total: 7, lead: "Mia Chen", posted: "May 12" },
     { title: "DevOps Engineer", team: "Platform", location: "Austin, US", status: "Closed", applicants: 15, top: 77, shortlisted: 0, screened: 15, total: 15, lead: "Sam Patel", posted: "Mar 30" },
   ];
+  const liveCandidates = workspace?.candidates || [];
+  const roles = workspace?.job_description ? [{ title: workspace.job_title || getJobTitle(workspace.job_description), team: "Current workspace", location: "Not specified", status: "Open", applicants: liveCandidates.length, top: liveCandidates.length ? Math.max(...liveCandidates.map((candidate) => Number(candidate.score || 0))) : 0, shortlisted: liveCandidates.filter((candidate) => ["Shortlist", "Interview", "Offer"].includes(candidate.status)).length, screened: liveCandidates.filter((candidate) => typeof candidate.score === "number").length, total: liveCandidates.length, lead: workspace.recruiter_email || "Recruiter", posted: workspace.updated_at ? new Date(workspace.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Recently" }] : [];
   const filteredRoles = roles.filter((role) => filter === "All Roles" || role.status === filter);
   const activeRoles = roles.filter((role) => role.status === "Open").length;
   const pipeline = roles.reduce((total, role) => total + role.applicants, 0);
@@ -1110,7 +1307,7 @@ function JobsPage({ setPage, onStartScreening }) {
       </section>
 
       <section className="metric-grid">
-        {[["Active roles", String(activeRoles), BriefcaseBusiness], ["In pipeline", String(pipeline), Users], ["Shortlisted", String(shortlisted), ShieldCheck], ["Avg time-to-screen", "1.4d", BarChart3]].map(([label, value, Icon]) => <article className="metric-card" key={label}><Icon size={20} /><span>{label}</span><strong>{value}</strong></article>)}
+        {[["Active roles", String(activeRoles), BriefcaseBusiness], ["In pipeline", String(pipeline), Users], ["Shortlisted", String(shortlisted), ShieldCheck], ["Avg time-to-screen", "Not tracked", BarChart3]].map(([label, value, Icon]) => <article className="metric-card" key={label}><Icon size={20} /><span>{label}</span><strong>{value}</strong></article>)}
       </section>
 
       <div className="role-tabs">
@@ -1141,32 +1338,59 @@ function JobsPage({ setPage, onStartScreening }) {
                 <span className="avatar">{role.lead.split(" ").map((word) => word[0]).join("").slice(0, 2)}</span>
                 <span><strong>{role.lead}</strong><small>Posted {role.posted}</small></span>
               </div>
-              <Button variant={index === 0 ? "primary" : "secondary"} icon={ArrowRight} onClick={() => onStartScreening(role)}>{index === 0 ? "Review" : "Open"}</Button>
+              <Button variant="primary" icon={ArrowRight} onClick={() => setPage("recruiter")}>Review workspace</Button>
             </div>
           </article>
         ))}
       </section>
+      {!roles.length && <section className="panel empty-state"><BriefcaseBusiness size={28} /><h2>No persisted role yet</h2><p>Start a screening workspace to create your first live role.</p><Button icon={BriefcaseBusiness} onClick={() => onStartScreening()}>Start screening</Button></section>}
     </div>
   );
 }
 
-function ApplicationsPage() {
-  const applications = [
-    { stage: "Saved", company: "Notion", role: "Frontend Engineer", location: "Remote - US", status: "Not matched", score: null, initials: "NO", age: "" },
-    { stage: "Applied", company: "Klarna", role: "UI Engineer", location: "Stockholm, SE", status: "Applied", score: 74, initials: "KI", age: "3 days ago" },
-    { stage: "Screening", company: "Northwind Labs", role: "Senior Frontend Engineer", location: "Remote - US / EU", status: "Screening", score: 68, initials: "NL", age: "2 days ago" },
-    { stage: "Interview", company: "Mapbox", role: "Frontend Engineer", location: "Berlin, DE", status: "Interview", score: 82, initials: "MB", age: "1 week ago" },
-    { stage: "Offer", company: "Pleo", role: "React Developer", location: "Remote - EU", status: "Offer", score: 90, initials: "PL", age: "2 weeks ago" },
-    { stage: "Rejected", company: "Hootsuite", role: "UI Developer", location: "Vancouver, CA", status: "Rejected", score: 58, initials: "HS", age: "1 month ago" },
-  ];
+function ApplicationsPage({ user, setPage }) {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const stages = ["Saved", "Applied", "Screening", "Interview", "Offer", "Rejected"];
+  const loadApplications = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const result = await api.cvHistory(user);
+      setApplications((result.cvs || []).map((cv) => {
+        const rawScore = Number(cv.match_score || 0);
+        const created = cv.created_at ? new Date(cv.created_at) : null;
+        return { ...cv, stage: cv.application_status === "Draft" ? "Saved" : cv.application_status || "Saved", score: Math.round(rawScore <= 1 ? rawScore * 100 : rawScore), initials: (cv.job_title || "CV").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), age: created && !Number.isNaN(created.valueOf()) ? created.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "" };
+      }));
+      setError("");
+    } catch (requestError) { setError(requestError.message); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { loadApplications(); }, [user]);
+
+  const changeStage = async (item, stage) => {
+    try {
+      await api.updateCvStatus(user, item.id, stage === "Saved" ? "Draft" : stage);
+      setApplications((current) => current.map((application) => application.id === item.id ? { ...application, stage } : application));
+    } catch (requestError) { setError(requestError.message); }
+  };
+
+  const removeApplication = async (item) => {
+    if (!window.confirm(`Delete the saved CV for ${item.job_title || "this role"}?`)) return;
+    try {
+      await api.deleteCv(user, item.id);
+      setApplications((current) => current.filter((application) => application.id !== item.id));
+    } catch (requestError) { setError(requestError.message); }
+  };
   const inProgress = applications.filter((item) => ["Applied", "Screening", "Interview"].includes(item.stage)).length;
   const interviews = applications.filter((item) => item.stage === "Interview").length;
   const offers = applications.filter((item) => item.stage === "Offer").length;
 
   return (
     <div className="page-shell">
-      <section className="page-heading"><div><span className="eyebrow">Stay on top of your search</span><h1>Applications</h1><p>Every role you are tracking, from saved to offer.</p></div><Button icon={BriefcaseBusiness}>Add application</Button></section>
+      <section className="page-heading"><div><span className="eyebrow">Stay on top of your search</span><h1>Applications</h1><p>Every tailored CV you are tracking, from saved to offer.</p></div><Button icon={BriefcaseBusiness} onClick={() => setPage("optimizer")}>Add application</Button></section>
+      {error && <div className="error-message application-message">{error}</div>}
       <section className="metric-grid">
         {[["Tracked", String(applications.length), BriefcaseBusiness], ["In progress", String(inProgress), BarChart3], ["Interviews", String(interviews), Users], ["Offers", String(offers), ShieldCheck]].map(([label, value, Icon]) => <article className="metric-card" key={label}><Icon size={20} /><span>{label}</span><strong>{value}</strong></article>)}
       </section>
@@ -1177,15 +1401,16 @@ function ApplicationsPage() {
             <div className="application-column" key={stage}>
               <div className="application-column-head"><span className={`source-dot app-dot-${stage.toLowerCase()}`} /><strong>{stage}</strong><small>{cards.length}</small></div>
               {cards.map((item) => (
-                <article className="panel application-card" key={`${item.company}-${item.role}`}>
+                <article className="panel application-card" key={item.id}>
                   <div className="candidate-name">
                     <span className="avatar">{item.initials}</span>
-                    <span><strong>{item.role}</strong><small>{item.company}</small></span>
+                    <span><strong>{item.job_title || "Untitled role"}</strong><small>Tailored CV</small></span>
                   </div>
-                  <p>{item.location}</p>
+                  <p>Created {item.age || "recently"}</p>
+                  <select className="status-select application-status-select" value={item.stage} onChange={(event) => changeStage(item, event.target.value)} aria-label={`Status for ${item.job_title}`}>{stages.map((option) => <option key={option}>{option}</option>)}</select>
                   <div className="application-card-footer">
-                    {item.score ? <Score value={item.score} compact /> : <span className="status-tag">{item.status}</span>}
-                    {item.age && <small>{item.age}</small>}
+                    <Score value={item.score} compact />
+                    <button className="text-button danger-text" onClick={() => removeApplication(item)}>Delete</button>
                   </div>
                 </article>
               ))}
@@ -1193,6 +1418,8 @@ function ApplicationsPage() {
           );
         })}
       </section>
+      {!loading && !applications.length && <section className="panel empty-state"><BriefcaseBusiness size={28} /><h2>No applications tracked yet</h2><p>Create a tailored CV to add your first role to the board.</p><Button icon={Target} onClick={() => setPage("optimizer")}>Match a role</Button></section>}
+      {loading && <section className="panel empty-state compact-empty"><h2>Loading applications...</h2></section>}
     </div>
   );
 }
@@ -1201,7 +1428,10 @@ function Profile({ user, setPage }) {
   const [bundle, setBundle] = useState({ profile: {}, experiences: [], skills: [] });
   const [profile, setProfile] = useState({});
   const [skillName, setSkillName] = useState("");
+  const [skillProficiency, setSkillProficiency] = useState("Intermediate");
   const [experience, setExperience] = useState({ company: "", position: "", start_date: "", end_date: "", current_job: false, description: "" });
+  const [editingExperienceId, setEditingExperienceId] = useState(null);
+  const [education, setEducation] = useState({ qualification: "", institution: "", start_year: "", end_year: "" });
   const [showExperienceForm, setShowExperienceForm] = useState(false);
   const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState("");
@@ -1243,39 +1473,57 @@ function Profile({ user, setPage }) {
 
   const addSkill = async () => {
     if (!skillName.trim()) return;
+    if (bundle.skills.some((skill) => skill.skill_name.toLowerCase() === skillName.trim().toLowerCase())) { setMessage("That skill is already on your profile."); return; }
     try {
-      await api.addSkill(user, { skill_name: skillName.trim(), proficiency: "Intermediate" });
+      await api.addSkill(user, { skill_name: skillName.trim(), proficiency: skillProficiency });
       setSkillName("");
       await loadProfile();
     } catch (error) { setMessage(error.message); }
+  };
+
+  const updateSkillProficiency = async (id, proficiency) => {
+    try { await api.updateSkill(user, id, { proficiency }); setBundle((current) => ({ ...current, skills: current.skills.map((skill) => skill.id === id ? { ...skill, proficiency } : skill) })); } catch (error) { setMessage(error.message); }
   };
 
   const removeSkill = async (id) => {
     try { await api.deleteSkill(user, id); await loadProfile(); } catch (error) { setMessage(error.message); }
   };
 
-  const addExperience = async () => {
+  const saveExperience = async () => {
     if (!experience.company.trim() || !experience.position.trim()) return;
     try {
-      await api.addExperience(user, experience);
+      if (editingExperienceId) await api.updateExperience(user, editingExperienceId, experience);
+      else await api.addExperience(user, experience);
       setExperience({ company: "", position: "", start_date: "", end_date: "", current_job: false, description: "" });
+      setEditingExperienceId(null);
       setShowExperienceForm(false);
       await loadProfile();
     } catch (error) { setMessage(error.message); }
   };
 
+  const editExperience = (item) => { setExperience({ company: item.company || "", position: item.position || "", start_date: item.start_date || "", end_date: item.end_date || "", current_job: Boolean(item.current_job), description: item.description || "" }); setEditingExperienceId(item.id); setShowExperienceForm(true); };
+
   const removeExperience = async (id) => {
     try { await api.deleteExperience(user, id); await loadProfile(); } catch (error) { setMessage(error.message); }
   };
 
-  const completed = [profile.full_name, profile.professional_title, profile.professional_summary, bundle.skills.length, bundle.experiences.length].filter(Boolean).length;
-  const strength = Math.round((completed / 5) * 100);
+  const addAchievement = async (experienceId, data) => { try { await api.addAchievement(user, experienceId, data); await loadProfile(); } catch (error) { setMessage(error.message); } };
+  const removeAchievement = async (experienceId, achievementId) => { try { await api.deleteAchievement(user, experienceId, achievementId); await loadProfile(); } catch (error) { setMessage(error.message); } };
+  const saveEducation = async () => {
+    if (!education.qualification.trim() || !education.institution.trim()) return;
+    const nextEducation = [...(profile.education || []), { ...education, id: `edu_${Date.now()}` }];
+    try { const result = await api.updateProfile(user, { ...profile, education: nextEducation }); setProfile(result.profile); setEducation({ qualification: "", institution: "", start_year: "", end_year: "" }); setMessage("Education saved."); } catch (error) { setMessage(error.message); }
+  };
+  const removeEducation = async (id) => { const nextEducation = (profile.education || []).filter((item) => item.id !== id); try { const result = await api.updateProfile(user, { ...profile, education: nextEducation }); setProfile(result.profile); } catch (error) { setMessage(error.message); } };
+
+  const completed = [profile.full_name, profile.professional_title, profile.professional_summary, bundle.skills.length, bundle.experiences.length, profile.education?.length].filter(Boolean).length;
+  const strength = Math.round((completed / 6) * 100);
   const displayName = profile.full_name || user?.split("@")[0] || "Candidate";
   const initials = displayName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   return (
     <div className="page-shell">
       <section className="page-heading">
-        <div><span className="eyebrow">Your career profile</span><h1>Profile</h1><p>Build it once. TrueFit reuses your profile to generate tailored CVs and match you to every new role.</p></div>
+        <div><span className="eyebrow">Your career profile</span><h1>Profile</h1><p>Build it once. Fydara reuses your profile to generate tailored CVs and match you to every new role.</p></div>
         <Button icon={FileText} onClick={() => setPage("optimizer")}>Generate CV</Button>
       </section>
 
@@ -1293,7 +1541,7 @@ function Profile({ user, setPage }) {
           <article className="panel profile-checklist">
             <div className="panel-head"><h2>Profile strength</h2><strong>{strength}%</strong></div>
             <div className="progress-track"><span style={{ width: `${strength}%` }} /></div>
-            {["Basics", "Summary", "Skills", "Experience"].map((section, index) => <div className={index < completed ? "checklist-row" : "checklist-row muted-row"} key={section}><Check size={15} /> {section}</div>)}
+            {["Basics", "Title", "Summary", "Skills", "Experience", "Education"].map((section, index) => <div className={index < completed ? "checklist-row" : "checklist-row muted-row"} key={section}><Check size={15} /> {section}</div>)}
           </article>
           <Button variant="secondary" icon={Target} onClick={() => setPage("optimizer")}>Match to a role</Button>
         </aside>
@@ -1321,31 +1569,37 @@ function Profile({ user, setPage }) {
 
           <article className="panel profile-form">
             <h2>Skills</h2>
-            <div className="skills profile-skills">{bundle.skills.map((skill) => <button className="skill removable-skill" key={skill.id} onClick={() => removeSkill(skill.id)} title={`Remove ${skill.skill_name}`}>{skill.skill_name} <X size={12} /></button>)}</div>
-            <div className="skill-add-row"><input value={skillName} onChange={(event) => setSkillName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addSkill(); }} placeholder="Add a skill..." /><Button variant="secondary" icon={Check} onClick={addSkill}>Add</Button></div>
+            <div className="profile-skill-list">{bundle.skills.map((skill) => <div className="skill-editor-row" key={skill.id}><strong>{skill.skill_name}</strong><select className="simple-select" value={skill.proficiency || "Intermediate"} onChange={(event) => updateSkillProficiency(skill.id, event.target.value)}>{["Beginner", "Intermediate", "Advanced", "Expert"].map((level) => <option key={level}>{level}</option>)}</select><button className="icon-button" onClick={() => removeSkill(skill.id)} title={`Remove ${skill.skill_name}`}><X size={14} /></button></div>)}</div>
+            <div className="skill-add-row"><input value={skillName} onChange={(event) => setSkillName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addSkill(); }} placeholder="Add a skill..." /><select className="simple-select" value={skillProficiency} onChange={(event) => setSkillProficiency(event.target.value)}>{["Beginner", "Intermediate", "Advanced", "Expert"].map((level) => <option key={level}>{level}</option>)}</select><Button variant="secondary" icon={Check} onClick={addSkill}>Add</Button></div>
           </article>
 
           <article className="panel profile-form">
-            <div className="panel-head"><h2>Experience</h2><button className="text-button" onClick={() => setShowExperienceForm((value) => !value)}>{showExperienceForm ? "Cancel" : "+ Add role"}</button></div>
-            {showExperienceForm && <div className="experience-editor form-grid"><label>Position<input value={experience.position} onChange={(event) => setExperience({ ...experience, position: event.target.value })} /></label><label>Company<input value={experience.company} onChange={(event) => setExperience({ ...experience, company: event.target.value })} /></label><label>Start date<input type="date" value={experience.start_date} onChange={(event) => setExperience({ ...experience, start_date: event.target.value })} /></label><label>End date<input type="date" value={experience.end_date} disabled={experience.current_job} onChange={(event) => setExperience({ ...experience, end_date: event.target.value })} /></label><label className="check-row"><input type="checkbox" checked={experience.current_job} onChange={(event) => setExperience({ ...experience, current_job: event.target.checked, end_date: "" })} /> Current role</label><label className="full-field">Description<textarea value={experience.description} onChange={(event) => setExperience({ ...experience, description: event.target.value })} /></label><Button icon={Check} onClick={addExperience}>Save role</Button></div>}
-            {bundle.experiences.map((item) => <ExperienceItem key={item.id} title={item.position} company={item.company} date={`${item.start_date || "Start"} - ${item.current_job ? "Present" : item.end_date || "End"}`} bullets={(item.description || "").split("\n").filter(Boolean)} onDelete={() => removeExperience(item.id)} />)}
+            <div className="panel-head"><h2>Experience</h2><button className="text-button" onClick={() => { setShowExperienceForm((value) => !value); setEditingExperienceId(null); setExperience({ company: "", position: "", start_date: "", end_date: "", current_job: false, description: "" }); }}>{showExperienceForm ? "Cancel" : "+ Add role"}</button></div>
+            {showExperienceForm && <div className="experience-editor form-grid"><label>Position<input value={experience.position} onChange={(event) => setExperience({ ...experience, position: event.target.value })} /></label><label>Company<input value={experience.company} onChange={(event) => setExperience({ ...experience, company: event.target.value })} /></label><label>Start date<input type="date" value={experience.start_date} onChange={(event) => setExperience({ ...experience, start_date: event.target.value })} /></label><label>End date<input type="date" value={experience.end_date} disabled={experience.current_job} onChange={(event) => setExperience({ ...experience, end_date: event.target.value })} /></label><label className="check-row"><input type="checkbox" checked={experience.current_job} onChange={(event) => setExperience({ ...experience, current_job: event.target.checked, end_date: "" })} /> Current role</label><label className="full-field">Description<textarea value={experience.description} onChange={(event) => setExperience({ ...experience, description: event.target.value })} /></label><Button icon={Check} onClick={saveExperience}>{editingExperienceId ? "Update role" : "Save role"}</Button></div>}
+            {bundle.experiences.map((item) => <ExperienceItem key={item.id} title={item.position} company={item.company} date={`${item.start_date || "Start"} - ${item.current_job ? "Present" : item.end_date || "End"}`} bullets={(item.description || "").split("\n").filter(Boolean)} achievements={bundle.achievements_by_experience?.[item.id] || []} onEdit={() => editExperience(item)} onDelete={() => removeExperience(item.id)} onAddAchievement={(data) => addAchievement(item.id, data)} onDeleteAchievement={(achievementId) => removeAchievement(item.id, achievementId)} />)}
             {!bundle.experiences.length && !showExperienceForm && <p className="profile-tip">Add your work history so TrueFit can tailor CVs and calculate stronger matches.</p>}
           </article>
+          <article className="panel profile-form"><h2>Education</h2><div className="form-grid"><label>Qualification<input value={education.qualification} onChange={(event) => setEducation({ ...education, qualification: event.target.value })} placeholder="e.g. BSc Computer Science" /></label><label>Institution<input value={education.institution} onChange={(event) => setEducation({ ...education, institution: event.target.value })} /></label><label>Start year<input value={education.start_year} onChange={(event) => setEducation({ ...education, start_year: event.target.value })} /></label><label>End year<input value={education.end_year} onChange={(event) => setEducation({ ...education, end_year: event.target.value })} /></label></div><div className="profile-form-actions"><Button variant="secondary" icon={Check} onClick={saveEducation}>Add education</Button></div>{(profile.education || []).map((item) => <div className="experience-item" key={item.id}><div><strong>{item.qualification}</strong><small>{item.institution}</small></div><div className="experience-actions"><span className="status-tag">{item.start_year} - {item.end_year || "Present"}</span><button className="icon-button" onClick={() => removeEducation(item.id)}><X size={14} /></button></div></div>)}</article>
         </div>
       </section>}
     </div>
   );
 }
 
-function ExperienceItem({ title, company, date, bullets, onDelete }) {
+function ExperienceItem({ title, company, date, bullets, achievements = [], onEdit, onDelete, onAddAchievement, onDeleteAchievement }) {
+  const [achievement, setAchievement] = useState("");
+  const [metric, setMetric] = useState("");
+  const add = async () => { if (!achievement.trim()) return; await onAddAchievement({ achievement: achievement.trim(), metric: metric.trim() }); setAchievement(""); setMetric(""); };
   return (
     <div className="experience-item">
       <div>
         <strong>{title}</strong>
         <small>{company}</small>
         <ul>{bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
+        {achievements.length > 0 && <div className="achievement-list"><strong>Achievements</strong>{achievements.map((item) => <div key={item.id}><span>{item.achievement}{item.metric ? ` - ${item.metric}` : ""}</span><button className="icon-button" onClick={() => onDeleteAchievement(item.id)}><X size={12} /></button></div>)}</div>}
+        {onAddAchievement && <div className="achievement-add-row"><input value={achievement} onChange={(event) => setAchievement(event.target.value)} placeholder="Add a measurable achievement" /><input value={metric} onChange={(event) => setMetric(event.target.value)} placeholder="Metric (optional)" /><Button variant="secondary" icon={Check} onClick={add}>Add</Button></div>}
       </div>
-      <div className="experience-actions"><span className="status-tag">{date}</span>{onDelete && <button className="icon-button" onClick={onDelete} title="Delete experience"><X size={15} /></button>}</div>
+      <div className="experience-actions"><span className="status-tag">{date}</span>{onEdit && <button className="text-button" onClick={onEdit}>Edit</button>}{onDelete && <button className="icon-button" onClick={onDelete} title="Delete experience"><X size={15} /></button>}</div>
     </div>
   );
 }
@@ -1363,12 +1617,48 @@ export default function App() {
   const [candidateMessages, setCandidateMessages] = useState({});
   const [reviewedMessages, setReviewedMessages] = useState({});
   const [sentMessages, setSentMessages] = useState({});
+  const [communicationHistory, setCommunicationHistory] = useState([]);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [threshold, setThreshold] = useState(70);
+  const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
+  const [workspaceStatus, setWorkspaceStatus] = useState("");
+  const [recruiterProfile, setRecruiterProfile] = useState({});
 
   useEffect(() => {
     api.health().then(() => setApiOnline(true)).catch(() => setApiOnline(false));
   }, []);
+
+  useEffect(() => {
+    if (!user || role !== "recruiter") { setWorkspaceLoaded(false); return; }
+    setWorkspaceStatus("Restoring saved workspace...");
+    api.recruiterWorkspace(user).then((result) => {
+      const workspace = result.workspace;
+      if (workspace) {
+        setJobDescription(workspace.job_description || "");
+        setCandidates(workspace.candidates || []);
+        setSelectedCandidate(workspace.selected_candidate || null);
+        setCandidateMessages(workspace.candidate_messages || {});
+        setReviewedMessages(workspace.reviewed_messages || {});
+        setSentMessages(workspace.sent_messages || {});
+        setCommunicationHistory(workspace.communication_history || []);
+        setHasReviewed(Boolean(workspace.has_reviewed));
+        setThreshold(Number(workspace.threshold || 70));
+        setRecruiterProfile(workspace.recruiter_profile || {});
+        setWorkspaceStatus("Saved workspace restored");
+      } else setWorkspaceStatus("New workspace - changes save automatically");
+    }).catch(() => setWorkspaceStatus("Workspace could not be restored")).finally(() => setWorkspaceLoaded(true));
+  }, [user, role]);
+
+  useEffect(() => {
+    if (!workspaceLoaded || !user || role !== "recruiter") return undefined;
+    setWorkspaceStatus("Saving...");
+    const timeout = setTimeout(() => {
+      api.saveRecruiterWorkspace(user, { job_description: jobDescription, job_title: getJobTitle(jobDescription), candidates, selected_candidate: selectedCandidate, candidate_messages: candidateMessages, reviewed_messages: reviewedMessages, sent_messages: sentMessages, communication_history: communicationHistory, has_reviewed: hasReviewed, threshold, recruiter_profile: recruiterProfile })
+        .then(() => setWorkspaceStatus("All changes saved"))
+        .catch(() => setWorkspaceStatus("Save failed - retrying after the next change"));
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [workspaceLoaded, user, role, jobDescription, candidates, selectedCandidate, candidateMessages, reviewedMessages, sentMessages, communicationHistory, hasReviewed, threshold, recruiterProfile]);
 
   function authenticated(email) {
     setUser(email);
@@ -1394,8 +1684,9 @@ export default function App() {
     setCandidateMessages({});
     setReviewedMessages({});
     setSentMessages({});
+    setCommunicationHistory([]);
     setHasReviewed(false);
-    setPage("recruiter");
+    setPage(user ? "recruiter" : "auth");
   }
 
   function openMatchReport(candidate, context = {}) {
@@ -1421,25 +1712,32 @@ export default function App() {
     setHasReviewed,
     threshold,
     setThreshold,
+    workspaceStatus,
+    communicationHistory,
+    setCommunicationHistory,
   };
+  const recruiterWorkspaceView = { recruiter_email: user, job_description: jobDescription, job_title: getJobTitle(jobDescription), candidates, candidate_messages: candidateMessages, threshold, has_reviewed: hasReviewed };
 
   if (page === "landing") return <Landing setPage={setPage} setRole={setRole} onStartScreening={startScreening} />;
-  if (page === "auth") return <Auth role={role} setRole={setRole} onAuthenticated={authenticated} />;
+  if (page === "auth") return <Auth role={role} setRole={setRole} onAuthenticated={authenticated} setPage={setPage} />;
+  if (page === "password-reset") return <PasswordResetPage setPage={setPage} />;
 
   return (
     <div className="app">
       <TopNav page={page} setPage={setPage} role={role} onLogout={logout} />
       {!apiOnline && <div className="offline-banner">FastAPI backend is offline. Start it on port 8000 to use live actions.</div>}
       {page === "candidate" && <CandidateDashboard setPage={setPage} user={user} />}
-      {page === "optimizer" && <Optimizer />}
+      {page === "optimizer" && <Optimizer user={user} setPage={setPage} />}
       {page === "profile" && <Profile user={user} setPage={setPage} />}
-      {page === "applications" && <ApplicationsPage />}
-      {page === "recruiter" && <RecruiterWorkspace onOpenReport={openMatchReport} screening={screeningState} />}
+      {page === "applications" && <ApplicationsPage user={user} setPage={setPage} />}
+      {page === "recruiter" && <RecruiterWorkspace onOpenReport={openMatchReport} screening={screeningState} recruiterEmail={user} />}
+      {page === "recruiter-profile" && <RecruiterProfile user={user} profile={recruiterProfile} onChange={setRecruiterProfile} workspaceStatus={workspaceStatus} />}
       {page === "feedback" && <CandidateFeedbackPage />}
-      {page === "jobs" && <JobsPage setPage={setPage} onStartScreening={startScreening} />}
-      {page === "candidates" && <CandidatesPage onOpenReport={openMatchReport} />}
+      {page === "jobs" && <JobsPage setPage={setPage} onStartScreening={startScreening} workspace={recruiterWorkspaceView} />}
+      {page === "candidates" && <CandidatesPage onOpenReport={openMatchReport} workspace={recruiterWorkspaceView} />}
       {page === "report" && <MatchReportPage candidate={reportCandidate} setPage={setPage} reportContext={reportContext} />}
-      {page === "reports" && <ReportsPage />}
+      {page === "reports" && <ReportsPage workspace={recruiterWorkspaceView} />}
+      {page === "security" && <SecurityPage user={user} setPage={setPage} onLogout={logout} />}
     </div>
   );
 }

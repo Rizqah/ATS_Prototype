@@ -3,16 +3,19 @@
 from fastapi import APIRouter
 
 from backend.routes._responses import require_success
-from backend.schemas import ExperienceCreate, ExperienceUpdate, ProfileUpdate, SkillCreate
+from backend.schemas import AchievementCreate, ExperienceCreate, ExperienceUpdate, ProfileUpdate, SkillCreate, SkillUpdate
 from services.profile_service import (
     add_skill,
+    add_achievement,
     add_work_experience,
     delete_skill,
+    delete_achievement,
     delete_work_experience,
     fetch_profile_bundle,
     get_or_create_profile,
     update_profile,
     update_work_experience,
+    update_skill,
 )
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -54,6 +57,21 @@ def create_skill(user_email: str, request: SkillCreate):
     return require_success(add_skill(user_email, request.skill_name, request.proficiency))
 
 
+@router.put("/{user_email}/skills/{skill_id}")
+def edit_skill(user_email: str, skill_id: str, request: SkillUpdate):
+    return require_success(update_skill(user_email, skill_id, request.data), status_code=404)
+
+
 @router.delete("/{user_email}/skills/{skill_id}")
 def remove_skill(user_email: str, skill_id: str):
     return require_success(delete_skill(user_email, skill_id))
+
+
+@router.post("/{user_email}/experiences/{experience_id}/achievements", status_code=201)
+def create_achievement(user_email: str, experience_id: str, request: AchievementCreate):
+    return require_success(add_achievement(experience_id, request.achievement, request.metric))
+
+
+@router.delete("/{user_email}/experiences/{experience_id}/achievements/{achievement_id}")
+def remove_achievement(user_email: str, experience_id: str, achievement_id: str):
+    return require_success(delete_achievement(experience_id, achievement_id))

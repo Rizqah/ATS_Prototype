@@ -202,6 +202,15 @@ def generate_ats_optimized_cv(
         content.append(Paragraph("PROFESSIONAL SUMMARY", heading_style))
         content.append(Paragraph(profile['professional_summary'], normal_style))
         content.append(Spacer(1, 0.1*inch))
+
+    # ===== EDUCATION =====
+    if profile.get('education'):
+        content.append(Paragraph("EDUCATION", heading_style))
+        for education in profile['education']:
+            content.append(Paragraph(f"<b>{education.get('qualification', '')}</b> | {education.get('institution', '')}", subheading_style))
+            dates = " - ".join(filter(None, [education.get('start_year', ''), education.get('end_year', '')]))
+            if dates:
+                content.append(Paragraph(dates, normal_style))
     
     # ===== EXPERIENCE (numbered 1., 2., 3.) =====
     if work_experiences:
@@ -344,6 +353,12 @@ def format_cv_for_display(
         text.append("\nSKILLS")
         skill_names = [s.get('skill_name', '') for s in skills]
         text.append(", ".join(skill_names))
+
+    if profile.get('education'):
+        text.append("\nEDUCATION")
+        for education in profile['education']:
+            text.append(f"{education.get('qualification', '')} | {education.get('institution', '')}")
+            text.append(" - ".join(filter(None, [education.get('start_year', ''), education.get('end_year', '')])))
     
     return "\n".join(text)
 
@@ -507,6 +522,17 @@ def generate_cv_docx(
         for run in skills_p.runs:
             run.font.size = Pt(9)
             run.font.name = "Calibri"
+
+    if profile.get("education"):
+        p = doc.add_paragraph()
+        p.add_run("4. EDUCATION").bold = True
+        for education in profile["education"]:
+            education_p = doc.add_paragraph()
+            education_p.add_run(education.get("qualification", "")).bold = True
+            education_p.add_run(f" | {education.get('institution', '')}")
+            dates = " - ".join(filter(None, [education.get("start_year", ""), education.get("end_year", "")]))
+            if dates:
+                doc.add_paragraph(dates)
 
     buffer = io.BytesIO()
     doc.save(buffer)

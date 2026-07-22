@@ -1,7 +1,6 @@
 # TrueFit React Frontend
 
-This is the new TrueFit product frontend. It runs beside the existing
-Streamlit prototype while migration is in progress.
+This is the supported TrueFit product frontend. It connects to the FastAPI API.
 
 ## Run
 
@@ -20,7 +19,7 @@ $env:VITE_API_URL="http://127.0.0.1:8000"
 npm run dev
 ```
 
-## Implemented Screens
+## Implemented Screens and Workflows
 
 - TrueFit landing
 - Role-aware sign in and sign up
@@ -28,6 +27,7 @@ npm run dev
 - CV Optimizer preview
 - Candidate profile
 - Recruiter workspace
-
-These screens are the first migration slice. Streamlit remains available until
-the remaining workflows are implemented and verified.
+- Candidate matching and feedback
+- Talent pool and CSV export
+- Hiring reports and PDF export
+- Account security, privacy, password reset and two-factor authentication

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class Credentials(BaseModel):
     email: str
     password: str = Field(min_length=1)
+    otp_code: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -34,6 +35,15 @@ class ExperienceUpdate(BaseModel):
 class SkillCreate(BaseModel):
     skill_name: str = Field(min_length=1)
     proficiency: str = "Intermediate"
+
+
+class SkillUpdate(BaseModel):
+    data: Dict[str, Any]
+
+
+class AchievementCreate(BaseModel):
+    achievement: str = Field(min_length=1)
+    metric: str = ""
 
 
 class CandidateResume(BaseModel):
@@ -71,3 +81,58 @@ class CVRequest(BaseModel):
 
 class CVOptimizeRequest(CVRequest):
     job_description: str = Field(min_length=1)
+
+
+class CVStatusUpdate(BaseModel):
+    status: str = Field(min_length=1)
+
+
+class CVHistoryCreate(BaseModel):
+    job_title: str = Field(min_length=1)
+    match_score: float = 0
+    cv_content: str = ""
+    job_description: str = Field(min_length=1)
+
+
+class PasswordChangeRequest(BaseModel):
+    email: str
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8)
+
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+
+class PasswordResetConfirm(BaseModel):
+    email: str
+    token: str = Field(min_length=6, max_length=6)
+    new_password: str = Field(min_length=8)
+
+
+class TwoFactorConfirm(BaseModel):
+    email: str
+    code: str = Field(min_length=6)
+
+
+class TwoFactorDisable(BaseModel):
+    email: str
+    password: str = Field(min_length=1)
+    code: str = Field(min_length=6)
+
+
+class AccountDeleteRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=1)
+    confirmation: str
+
+
+class RecruiterWorkspaceUpdate(BaseModel):
+    workspace: Dict[str, Any]
+
+
+class EmailSendRequest(BaseModel):
+    recruiter_email: str
+    to_email: str
+    subject: str = Field(min_length=1)
+    body: str = Field(min_length=1)

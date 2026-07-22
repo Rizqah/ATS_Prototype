@@ -21,7 +21,7 @@ def signup(credentials: Credentials):
 
 @router.post("/login")
 def login(credentials: Credentials):
-    return require_success(authenticate_user(credentials.email, credentials.password), status_code=401)
+    return require_success(authenticate_user(credentials.email, credentials.password, credentials.otp_code), status_code=401)
 
 
 @router.get("/users/{email}")

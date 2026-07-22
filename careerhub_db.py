@@ -348,6 +348,18 @@ def get_skills(user_email: str) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+def update_skill(user_email: str, skill_id: str, data: dict) -> dict:
+    """Update a stored skill."""
+    try:
+        skills_data = load_json(SKILLS_FILE)
+        if user_email not in skills_data or skill_id not in skills_data[user_email]:
+            return {"success": False, "error": "Skill not found"}
+        skills_data[user_email][skill_id].update(data)
+        save_json(SKILLS_FILE, skills_data)
+        return {"success": True, "skill": skills_data[user_email][skill_id]}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 def delete_skill(user_email: str, skill_id: str) -> dict:
     """Delete skill."""
     try:

@@ -21,6 +21,7 @@ from careerhub_db import (
     save_generated_cv,
     update_cv_status,
     update_profile,
+    update_skill,
     update_work_experience,
 )
 
@@ -36,6 +37,13 @@ def fetch_profile_bundle(user_email: str) -> Dict:
     experiences = get_work_experience(user_email)
     skills = get_skills(user_email)
     cvs = get_generated_cvs(user_email)
+    achievements_by_experience = {}
+    achievement_errors = []
+    for experience in experiences.get("experiences", []):
+        achievement_result = get_achievements(experience["id"])
+        achievements_by_experience[experience["id"]] = achievement_result.get("achievements", [])
+        if not achievement_result.get("success"):
+            achievement_errors.append(achievement_result.get("error"))
 
     return {
         "success": all(item.get("success") for item in [profile, experiences, skills, cvs]),
@@ -43,11 +51,12 @@ def fetch_profile_bundle(user_email: str) -> Dict:
         "experiences": experiences.get("experiences", []),
         "skills": skills.get("skills", []),
         "cvs": cvs.get("cvs", []),
+        "achievements_by_experience": achievements_by_experience,
         "errors": [
             item.get("error")
             for item in [profile, experiences, skills, cvs]
             if not item.get("success")
-        ],
+        ] + achievement_errors,
     }
 
 
@@ -72,5 +81,6 @@ __all__ = [
     "save_generated_cv",
     "update_cv_status",
     "update_profile",
+    "update_skill",
     "update_work_experience",
 ]

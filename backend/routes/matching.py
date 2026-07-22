@@ -10,6 +10,7 @@ from services.ats_service import (
     generate_candidate_improvements,
     match_profile_to_jd,
     rank_resumes,
+    analyse_role_fit,
 )
 
 router = APIRouter(prefix="/matching", tags=["matching"])
@@ -37,6 +38,11 @@ def match_batch(request: BatchMatchRequest):
         return {"candidates": rank_resumes(request.job_description, candidates)}
     except Exception as error:
         raise _service_error(error) from error
+
+
+@router.post("/analysis")
+def analyse_match(request: FeedbackRequest):
+    return analyse_role_fit(request.job_description, request.candidate_resume)
 
 
 @router.post("/profile")
@@ -81,7 +87,7 @@ We would like to invite you to the next stage of the process. In the interview, 
 Please reply with your availability for a first conversation this week.
 
 Best regards,
-TrueFit Hiring Team"""
+Fydara Hiring Team"""
     return {"subject": subject, "invite": invite}
 
 

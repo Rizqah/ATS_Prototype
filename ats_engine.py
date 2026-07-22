@@ -23,8 +23,8 @@ class ATSConfigurationError(RuntimeError):
 _client = None
 
 
-class _StreamlitCompatibility:
-    """Minimal fallback for legacy setup error paths outside Streamlit."""
+class _ServiceReporter:
+    """Translate status calls into service-safe warnings and errors."""
 
     def error(self, message):
         warnings.warn(str(message), RuntimeWarning, stacklevel=2)
@@ -36,17 +36,7 @@ class _StreamlitCompatibility:
         raise ATSConfigurationError("ATS service initialization stopped")
 
 
-st = _StreamlitCompatibility()
-
-
-def _get_streamlit_secret(name: str) -> Optional[str]:
-    """Read Streamlit secrets only when Streamlit is installed and configured."""
-    try:
-        import streamlit as st
-
-        return st.secrets.get(name)
-    except Exception:
-        return None
+st = _ServiceReporter()
 
 
 def setup_openai_client():
@@ -55,17 +45,11 @@ def setup_openai_client():
         # Try .env file first (for local development)
         api_key = os.getenv("OPENAI_API_KEY")
         
-        # Fall back to Streamlit secrets (for production/cloud deployment)
-        if not api_key:
-            api_key = _get_streamlit_secret("OPENAI_API_KEY")
-        
         # If still no key, show error
         if not api_key:
             st.error(
-                "❌ OpenAI API Key not found.\n\n"
-                "Please ensure one of the following:\n"
-                "1. Add `OPENAI_API_KEY=sk-...` to your `.env` file in the project root\n"
-                "2. Or set it in Streamlit secrets for cloud deployment"
+                "OpenAI API key not found. Set OPENAI_API_KEY in the environment "
+                "or in the local .env file."
             )
             st.stop()
         
@@ -145,10 +129,10 @@ def validate_resume_document(raw_text: str) -> tuple[bool, str]:
 # ======================================================
 def extract_text_from_pdf(uploaded_file) -> str:
     """
-    Reads a Streamlit UploadedFile object and extracts raw text.
+    Read a binary file-like PDF object and extract its raw text.
     
     Args:
-        uploaded_file: Streamlit UploadedFile object
+        uploaded_file: Binary file-like object positioned at the PDF content
         
     Returns:
         Extracted text from PDF
