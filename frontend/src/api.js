@@ -47,7 +47,7 @@ async function download(path, payload) {
 }
 
 export const api = {
-  health: () => request("/health"),
+  health: () => request("/api/health"),
   login: (email, password, otpCode = null) =>
     request("/api/auth/login", {
       method: "POST",

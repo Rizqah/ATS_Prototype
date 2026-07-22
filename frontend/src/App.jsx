@@ -1725,7 +1725,7 @@ export default function App() {
   return (
     <div className="app">
       <TopNav page={page} setPage={setPage} role={role} onLogout={logout} />
-      {!apiOnline && <div className="offline-banner">FastAPI backend is offline. Start it on port 8000 to use live actions.</div>}
+      {!apiOnline && <div className="offline-banner"> Unable to connect to Fydara services. Please refresh or try again shortly.</div>}
       {page === "candidate" && <CandidateDashboard setPage={setPage} user={user} />}
       {page === "optimizer" && <Optimizer user={user} setPage={setPage} />}
       {page === "profile" && <Profile user={user} setPage={setPage} />}

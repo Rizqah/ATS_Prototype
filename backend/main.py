@@ -10,6 +10,12 @@ app = FastAPI(
     description="Backend API for the Fydara recruiter and candidate experiences.",
     version="0.1.0",
 )
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "Fydara API"
+    }
 
 app.add_middleware(
     CORSMiddleware,
