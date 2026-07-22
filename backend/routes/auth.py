@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from backend.routes._responses import require_success
-from backend.schemas import Credentials, UserUpdate
+from routes._responses import require_success
+from schemas import Credentials, UserUpdate
 from services.auth_service import (
     authenticate_user,
     fetch_user,

@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, HTTPException, Response
 
-from backend.routes._responses import require_success
-from backend.schemas import CVHistoryCreate, CVOptimizeRequest, CVRequest, CVStatusUpdate
+from routes._responses import require_success
+from schemas import CVHistoryCreate, CVOptimizeRequest, CVRequest, CVStatusUpdate
 from services.ats_service import ATSConfigurationError
 from services.profile_service import delete_cv, get_generated_cvs, save_generated_cv, update_cv_status
 from services.cv_service import (

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from backend.schemas import BatchMatchRequest, FeedbackRequest, ProfileMatchRequest
+from schemas import BatchMatchRequest, FeedbackRequest, ProfileMatchRequest
 from services.ats_service import (
     ATSConfigurationError,
     extract_resume_text,
