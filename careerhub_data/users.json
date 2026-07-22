@@ -25,5 +25,13 @@
     "verification_expires_at": "2026-03-14T18:48:26.160296",
     "verification_resend_count": 0,
     "last_verification_resend_at": null
+  },
+  "ola.lemmon1@gmail.com": {
+    "email": "ola.lemmon1@gmail.com",
+    "password_hash": "cd4a709d728bf009dbbbead004916285af3b8b205e20346d45b01f1b0effebac",
+    "role": "candidate",
+    "full_name": "",
+    "job_title": "",
+    "created_at": "2026-07-22T19:20:39.594425"
   }
 }
