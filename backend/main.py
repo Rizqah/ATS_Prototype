@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routes import auth, communications, cv, matching, profile, recruiter, security
+from backend.routes import auth, communications, cv, matching, profile, recruiter, security
 
 app = FastAPI(
     title="Fydara API",

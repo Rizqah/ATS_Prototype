@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from routes._responses import require_success
-from schemas import AchievementCreate, ExperienceCreate, ExperienceUpdate, ProfileUpdate, SkillCreate, SkillUpdate
+from backend.routes._responses import require_success
+from backend.schemas import AchievementCreate, ExperienceCreate, ExperienceUpdate, ProfileUpdate, SkillCreate, SkillUpdate
 from services.profile_service import (
     add_skill,
     add_achievement,

@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from routes._responses import require_success
-from schemas import RecruiterWorkspaceUpdate
+from backend.routes._responses import require_success
+from backend.schemas import RecruiterWorkspaceUpdate
 from services.recruiter_service import delete_workspace, get_workspace, save_workspace
 
 router = APIRouter(prefix="/recruiter", tags=["recruiter"])

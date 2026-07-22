@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from routes._responses import require_success
-from schemas import AccountDeleteRequest, PasswordChangeRequest, PasswordResetConfirm, PasswordResetRequest, TwoFactorConfirm, TwoFactorDisable
+from backend.routes._responses import require_success
+from backend.schemas import AccountDeleteRequest, PasswordChangeRequest, PasswordResetConfirm, PasswordResetRequest, TwoFactorConfirm, TwoFactorDisable
 from services.security_service import change_password, confirm_password_reset, confirm_two_factor_setup, delete_account, disable_two_factor, export_personal_data, request_password_reset, start_two_factor_setup, two_factor_status
 
 router = APIRouter(prefix="/security", tags=["security"])

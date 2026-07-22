@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from routes._responses import require_success
-from schemas import EmailSendRequest
+from backend.routes._responses import require_success
+from backend.schemas import EmailSendRequest
 from services.email_service import send_recruiter_email
 
 router = APIRouter(prefix="/communications", tags=["communications"])
